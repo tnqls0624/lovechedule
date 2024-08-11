@@ -10,8 +10,8 @@ import { User, UserSchema } from '../user/schema/user.schema';
 const infrastructure: Provider[] = [
   {
     provide: 'WORKSPACE_REPOSITORY',
-    useClass: WorkspaceRepositoryImplement,
-  },
+    useClass: WorkspaceRepositoryImplement
+  }
 ];
 
 const services = [WorkspaceService];
@@ -23,14 +23,14 @@ const controller = [WorkspaceController];
     MongooseModule.forFeature(
       [
         { name: Workspace.name, schema: WorkspaceSchema },
-        { name: User.name, schema: UserSchema },
+        { name: User.name, schema: UserSchema }
       ],
-      'lovechedule',
+      'lovechedule'
     ),
-    forwardRef(() => UserModule),
+    forwardRef(() => UserModule)
   ],
   controllers: [...controller],
   providers: [...services, ...infrastructure],
-  exports: [...services, ...infrastructure],
+  exports: [...services, ...infrastructure]
 })
 export class WorkspaceModule {}

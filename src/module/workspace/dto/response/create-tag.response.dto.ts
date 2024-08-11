@@ -13,6 +13,9 @@ export class CreateTagResponseDto {
   readonly tags: object[];
 
   @Expose()
+  readonly love_day: string;
+
+  @Expose()
   readonly createAt: Date;
 
   @Expose()

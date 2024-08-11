@@ -14,6 +14,7 @@ import {
   CACHE_GENERATOR,
   CacheModule as CacheStoreModule
 } from './lib/cache.module';
+import { WeatherModule } from './weather/weather.module';
 import axios from 'axios';
 import dayjs from 'dayjs';
 
@@ -40,7 +41,8 @@ import dayjs from 'dayjs';
     ScheduleModule,
     AlbumModule,
     PhotoModule,
-    CacheStoreModule
+    CacheStoreModule,
+    WeatherModule
   ],
   controllers: [AppController],
   providers: []

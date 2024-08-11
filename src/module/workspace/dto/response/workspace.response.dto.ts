@@ -1,5 +1,6 @@
 import { Expose, Transform, Type } from 'class-transformer';
 import { User } from '../../../user/schema/user.schema';
+import { Aniversary, Tag } from '../../schema/workspace.schema';
 
 export class WorkspaceResponseDto {
   @Expose()
@@ -21,6 +22,16 @@ export class WorkspaceResponseDto {
   readonly users: string[];
 
   @Expose()
+  @Type(() => Tag)
+  readonly tags: Tag[];
+
+  @Expose()
+  @Type(() => Aniversary)
+  readonly anniversary: Aniversary[];
+
+  @Expose()
+  readonly love_day: string;
+
   @Expose()
   readonly createAt: Date;
 

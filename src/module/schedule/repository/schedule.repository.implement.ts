@@ -6,6 +6,13 @@ import { Schedule } from '../schema/schedule.schema';
 import dayjs from 'dayjs';
 import { CreateScheduleRequestDto } from '../dto/request/create-schedule.request.dto';
 import { User } from '../../user/schema/user.schema';
+import { UpdateScheduleStatusRequestDto } from '../dto/request/update-schedule-status.request.dto';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault('Asia/Seoul');
 
 @Injectable()
 export class ScheduleRepositoryImplement implements ScheduleRepository {
@@ -22,31 +29,45 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
     _id: string,
     year: string,
     month: string,
+    week: string,
     day: string
   ): Promise<Schedule[]> {
     let start_date: string, end_date: string;
 
     if (year && month && day) {
-      start_date = dayjs(`${year}-${month}-${day}`).format(
-        'YYYY-MM-DD 00:00:00'
-      );
+      start_date = dayjs(`${year}-${month}-${day}`)
+        .tz()
+        .format('YYYY-MM-DD 00:00:00');
       end_date = dayjs(`${year}-${month}-${day}`)
+        .tz()
         .add(1, 'day')
         .format('YYYY-MM-DD 00:00:00');
+    } else if (year && month && week) {
+      const start_of_week = dayjs(`${year}-${month}-01`)
+        .tz()
+        .add(Number(week) - 1, 'week')
+        .startOf('week');
+      const end_of_Week = start_of_week.tz().endOf('week');
+      start_date = start_of_week.tz().format('YYYY-MM-DD 00:00:00');
+      end_date = end_of_Week.tz().format('YYYY-MM-DD 23:59:59');
     } else if (year && month) {
       start_date = dayjs(`${year}-${month}-01`)
+        .tz()
         .startOf('month')
         .format('YYYY-MM-DD 00:00:00');
       end_date = dayjs(`${year}-${month}-01`)
+        .tz()
         .endOf('month')
-        .format('YYYY-MM-DD 00:00:00');
+        .format('YYYY-MM-DD 23:59:59');
     } else if (year) {
       start_date = dayjs(`${year}-01-01`)
+        .tz()
         .startOf('year')
         .format('YYYY-MM-DD 00:00:00');
       end_date = dayjs(`${year}-12-31`)
+        .tz()
         .endOf('year')
-        .format('YYYY-MM-DD 00:00:00');
+        .format('YYYY-MM-DD 23:59:59');
     }
 
     const schedules = await this.schedule_model
@@ -87,6 +108,25 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
           _id: new Types.ObjectId(_id)
         },
         body,
+        {
+          new: true
+        }
+      )
+      .exec();
+  }
+
+  async updateScheduleIsDone(
+    _id: string,
+    body: UpdateScheduleStatusRequestDto
+  ): Promise<Schedule> {
+    return this.schedule_model
+      .findByIdAndUpdate(
+        {
+          _id: new Types.ObjectId(_id)
+        },
+        {
+          $set: body
+        },
         {
           new: true
         }

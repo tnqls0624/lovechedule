@@ -1,10 +1,20 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiTags,
+  ApiQuery,
+  ApiTags
 } from '@nestjs/swagger';
 import { WorkspaceService } from '../service/workspace.service';
 import { ResponseDto } from '../../../common/dto/response.dto';
@@ -19,6 +29,8 @@ import { JoinWorkspaceRequestDto } from '../dto/request/join-workspace.request.d
 import { WorkspaceResponseDto } from '../dto/response/workspace.response.dto';
 import { CreateTagRequestDto } from '../dto/request/create-tag.request.dto';
 import { CreateTagResponseDto } from '../dto/response/create-tag.response.dto';
+import { CreateAnniversaryRequestDto } from '../dto/request/create-anniversary.request.dto';
+import { AnniversaryResponseDto } from '../dto/response/anniversary.response.dto';
 
 @ApiTags('Workspace')
 @Controller('workspace')
@@ -26,10 +38,10 @@ export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
 
   @ApiOperation({
-    summary: 'Workspace Create',
+    summary: 'Workspace Create'
   })
   @ApiOkResponse({
-    type: ResponseDto,
+    type: ResponseDto
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -40,10 +52,10 @@ export class WorkspaceController {
   }
 
   @ApiOperation({
-    summary: 'Tag Create',
+    summary: 'Tag Create'
   })
   @ApiOkResponse({
-    type: ResponseDto,
+    type: ResponseDto
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -54,10 +66,10 @@ export class WorkspaceController {
   }
 
   @ApiOperation({
-    summary: 'Workspace Join User',
+    summary: 'Workspace Join User'
   })
   @ApiOkResponse({
-    type: ResponseDto,
+    type: ResponseDto
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -68,20 +80,86 @@ export class WorkspaceController {
   }
 
   @ApiOperation({
-    summary: 'Workspace Find',
+    summary: 'Workspace Find'
   })
   @ApiOkResponse({
-    type: ResponseDto,
+    type: ResponseDto
   })
   @ApiBearerAuth()
   @Serialize(WorkspaceResponseDto)
   @ApiParam({
     name: '_id',
     required: true,
-    type: 'string',
+    type: 'string'
   })
   @Get('/:_id')
-  findOneById(@Param('_id') _id: string) {
+  findById(@Param('_id') _id: string) {
     return this.workspaceService.findOneById(_id);
+  }
+
+  @ApiOperation({
+    summary: 'Anniversary Create'
+  })
+  @ApiOkResponse({
+    type: ResponseDto
+  })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Serialize(AnniversaryResponseDto)
+  @ApiParam({
+    name: '_id',
+    required: true,
+    type: 'string'
+  })
+  @Post('/:_id/anniversary')
+  anniversaryCreate(
+    @Param('_id') _id: string,
+    @Body() body: CreateAnniversaryRequestDto
+  ) {
+    return this.workspaceService.anniversaryCreate(_id, body);
+  }
+
+  @ApiOperation({
+    summary: 'Anniversary Find'
+  })
+  @ApiOkResponse({
+    type: ResponseDto
+  })
+  @ApiBearerAuth()
+  @Serialize(AnniversaryResponseDto)
+  @ApiParam({
+    name: '_id',
+    required: true,
+    type: 'string'
+  })
+  @Get('/:_id/anniversary')
+  findAnniversaryById(@Param('_id') _id: string) {
+    return this.workspaceService.findAnniversaryById(_id);
+  }
+
+  @ApiOperation({
+    summary: 'Anniversary Delete'
+  })
+  @ApiOkResponse({
+    type: ResponseDto
+  })
+  @ApiBearerAuth()
+  @Serialize(AnniversaryResponseDto)
+  @ApiParam({
+    name: '_id',
+    required: true,
+    type: 'string'
+  })
+  @ApiQuery({
+    name: 'title',
+    required: true,
+    type: 'string'
+  })
+  @Delete('/:_id/anniversary/:name')
+  deleteAnniversaryById(
+    @Param('_id') _id: string,
+    @Query('title') title: string
+  ) {
+    return this.workspaceService.deleteAnniversaryById(_id, title);
   }
 }

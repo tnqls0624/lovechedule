@@ -12,6 +12,9 @@ export class CreateWorkspaceResponseDto {
   readonly invite_code: string;
 
   @Expose()
+  readonly love_day: string;
+
+  @Expose()
   readonly createAt: Date;
 
   @Expose()

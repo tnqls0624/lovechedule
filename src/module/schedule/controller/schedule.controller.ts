@@ -24,6 +24,7 @@ import { Serialize } from '../../../interceptor/serialize.interceptor';
 import { CreateScheduleRequestDto } from '../dto/request/create-schedule.request.dto';
 import { ScheduleDto } from '../dto/schedule.dto';
 import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
+import { UpdateScheduleStatusRequestDto } from '../dto/request/update-schedule-status.request.dto';
 
 @ApiTags('Schedule')
 @Controller('schedule')
@@ -51,6 +52,12 @@ export class ScheduleController {
     description: '월'
   })
   @ApiQuery({
+    name: 'week',
+    required: false,
+    example: '1',
+    description: '주'
+  })
+  @ApiQuery({
     name: 'day',
     required: false,
     example: '10',
@@ -66,9 +73,10 @@ export class ScheduleController {
     @Param('_id') _id: string,
     @Query('year') year: string,
     @Query('month') month: string,
+    @Query('week') week: string,
     @Query('day') day: string
   ) {
-    return this.scheduleService.find(_id, year, month, day);
+    return this.scheduleService.find(_id, year, month, week, day);
   }
 
   @ApiOperation({ summary: 'Create Schedule' })
@@ -96,6 +104,22 @@ export class ScheduleController {
   @Put('/:_id')
   update(@Param('_id') _id: string, @Body() body: UpdateScheduleRequestDto) {
     return this.scheduleService.update(_id, body);
+  }
+
+  @ApiOperation({ summary: 'Update Schedule' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiParam({
+    type: 'string',
+    name: '_id',
+    example: 'dsanjkn213nj21k'
+  })
+  @Put('/:_id/done')
+  updateScheduleIsDone(
+    @Param('_id') _id: string,
+    @Body() body: UpdateScheduleStatusRequestDto
+  ) {
+    return this.scheduleService.updateScheduleIsDone(_id, body);
   }
 
   @ApiOperation({ summary: 'Delete Schedule' })

@@ -24,6 +24,10 @@ export class Schedule {
   description: string;
 
   @Expose()
+  @Prop({ required: true, type: Boolean, default: false })
+  is_done: boolean;
+
+  @Expose()
   @Prop({ required: true, type: String })
   date: string;
 

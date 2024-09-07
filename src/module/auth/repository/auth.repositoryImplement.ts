@@ -9,7 +9,7 @@ import { UpdateInfoRequestDto } from '../dto/request/update-Info.request.dto';
 @Injectable()
 export class AuthRepositoryImplement implements AuthRepository {
   constructor(
-    @InjectModel(User.name, 'lovechedule') private user_model: Model<User>,
+    @InjectModel(User.name, 'lovechedule') private user_model: Model<User>
   ) {}
 
   insert(body: CreateUserRequestDto): Promise<User> {

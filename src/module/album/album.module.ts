@@ -8,8 +8,8 @@ import { Album, AlbumSchema } from './schema/album.schema';
 const infrastructure: Provider[] = [
   {
     provide: 'ALBUM_REPOSITORY',
-    useClass: AlbumRepositoryImplement,
-  },
+    useClass: AlbumRepositoryImplement
+  }
 ];
 
 const services = [AlbumService];
@@ -20,11 +20,11 @@ const controller = [AlbumController];
   imports: [
     MongooseModule.forFeature(
       [{ name: Album.name, schema: AlbumSchema }],
-      'lovechedule',
-    ),
+      'lovechedule'
+    )
   ],
   controllers: [...controller],
   providers: [...services, ...infrastructure],
-  exports: [...services, ...infrastructure],
+  exports: [...services, ...infrastructure]
 })
 export class AlbumModule {}

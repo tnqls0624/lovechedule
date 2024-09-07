@@ -7,7 +7,7 @@ export class UserService {
   private readonly logger = new Logger(UserService.name);
   constructor(
     @Inject('USER_REPOSITORY')
-    private readonly userRepository: UserRepository,
+    private readonly userRepository: UserRepository
   ) {}
 
   async findAll(): Promise<User[]> {

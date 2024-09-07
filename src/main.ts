@@ -4,11 +4,14 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication, Logger } from '@nestjs/common';
 import { RedisIoAdapter } from './adapter/redis.adapter';
 import { SuccessInterceptor } from './interceptor/success.interceptor';
+import * as process from 'node:process';
 
 declare const module: any;
 
 async function bootstrap() {
+  console.log(`redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`);
   const app = await NestFactory.create(AppModule);
+
   const redis_io_adapter = await connectRedis(app);
   const logger = new Logger(bootstrap.name);
   setupSwagger(app);

@@ -4,7 +4,7 @@ import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 export class LoginRequestDto {
   @ApiProperty({
     example: 'dktnqls0624',
-    description: '유저 아이디',
+    description: '유저 아이디'
   })
   @MaxLength(30)
   @MinLength(3)

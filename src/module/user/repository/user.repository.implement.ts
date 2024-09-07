@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UserRepository } from '../interface/user.repository';
 import { User } from '../schema/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Schema, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateUserRequestDto } from '../dto/request/create-user.request.dto';
 import { Workspace } from '../../workspace/schema/workspace.schema';
 
@@ -11,7 +11,7 @@ export class UserRepositoryImplement implements UserRepository {
   constructor(
     @InjectModel(User.name, 'lovechedule') private user_model: Model<User>,
     @InjectModel(Workspace.name, 'lovechedule')
-    private workspace_model: Model<Workspace>,
+    private workspace_model: Model<Workspace>
   ) {}
 
   insert(body: CreateUserRequestDto): Promise<User> {
@@ -26,7 +26,7 @@ export class UserRepositoryImplement implements UserRepository {
   findByUserId(user_id: string): Promise<User> {
     return this.user_model
       .findOne({
-        user_id,
+        user_id
       })
       .exec();
   }
@@ -42,8 +42,8 @@ export class UserRepositoryImplement implements UserRepository {
           match: { users: new Types.ObjectId(_id) },
           populate: {
             path: 'users',
-            model: this.user_model,
-          },
+            model: this.user_model
+          }
         })
         .select('-password')
         .exec()
@@ -53,12 +53,12 @@ export class UserRepositoryImplement implements UserRepository {
   join(workspace_id: Types.ObjectId, user_id: Types.ObjectId): Promise<User> {
     return this.user_model.findOneAndUpdate(
       {
-        _id: user_id,
+        _id: user_id
       },
       {
         workspace: workspace_id,
-        new: true,
-      },
+        new: true
+      }
     );
   }
 }

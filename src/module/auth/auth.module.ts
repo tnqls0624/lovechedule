@@ -14,8 +14,8 @@ import { UserModule } from '../user/user.module';
 const infrastructure: Provider[] = [
   {
     provide: 'AUTH_REPOSITORY',
-    useClass: AuthRepositoryImplement,
-  },
+    useClass: AuthRepositoryImplement
+  }
 ];
 
 const services = [AuthService, JwtStrategy, JwtService];
@@ -31,20 +31,20 @@ const controller = [AuthController];
         secret: configService.get<string>('JWT_ACCESS_TOKEN_SECRET') as string,
         signOptions: {
           expiresIn: configService.get<string>(
-            'JWT_ACCESS_TOKEN_EXPIRATION_TIME',
-          ) as string,
-        },
-      }),
+            'JWT_ACCESS_TOKEN_EXPIRATION_TIME'
+          ) as string
+        }
+      })
     }),
     PassportModule.register({ defaultStrategy: 'jwt', session: false }),
     PasswordModule,
     MongooseModule.forFeature(
       [{ name: User.name, schema: UserSchema }],
-      'lovechedule',
+      'lovechedule'
     ),
-    UserModule,
+    UserModule
   ],
   controllers: [...controller],
-  providers: [...services, ...infrastructure],
+  providers: [...services, ...infrastructure]
 })
 export class AuthModule {}

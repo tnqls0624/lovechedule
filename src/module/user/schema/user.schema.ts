@@ -7,7 +7,7 @@ export type UserDocument = User & Document<Types.ObjectId>;
 
 @Schema({
   timestamps: true,
-  collection: 'users',
+  collection: 'users'
 })
 export class User {
   @Expose()
@@ -29,7 +29,7 @@ export class User {
   @Prop({
     type: String,
     enum: LoginType,
-    default: LoginType.BASIC,
+    default: LoginType.BASIC
   })
   login_type: string;
 }
@@ -39,7 +39,7 @@ export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.virtual('workspaces', {
   ref: 'Workspace',
   localField: '_id',
-  foreignField: 'users',
+  foreignField: 'users'
 });
 UserSchema.set('toObject', { virtuals: true });
 UserSchema.set('toJSON', { virtuals: true });

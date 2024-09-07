@@ -5,7 +5,7 @@ import {
   Get,
   Param,
   Post,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { AlbumService } from '../service/album.service';
 import {
@@ -13,7 +13,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiTags,
+  ApiTags
 } from '@nestjs/swagger';
 import { ResponseDto } from '../../../common/dto/response.dto';
 import { JwtAuthGuard } from '../../auth/guard';
@@ -30,7 +30,7 @@ export class AlbumController {
 
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiOperation({ summary: 'Find My Album' })
   @ApiBearerAuth()
@@ -40,7 +40,7 @@ export class AlbumController {
     type: 'string',
     name: '_id',
     description: '워크스페이스 아이디',
-    required: true,
+    required: true
   })
   @Get('workspace/:_id')
   findAll(@Param('_id') _id: string) {
@@ -49,7 +49,7 @@ export class AlbumController {
 
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiOperation({ summary: 'Create Album' })
   @ApiBearerAuth()
@@ -59,20 +59,20 @@ export class AlbumController {
     type: 'string',
     name: '_id',
     description: '워크스페이스 아이디',
-    required: true,
+    required: true
   })
   @Post('/workspace/:_id')
   insert(
     @User() user: UserDto,
     @Param('_id') _id: string,
-    @Body() body: CreateAlbumRequestDto,
+    @Body() body: CreateAlbumRequestDto
   ) {
     return this.albumService.insert(user, _id, body);
   }
 
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiOperation({ summary: 'Delete Album' })
   @ApiBearerAuth()
@@ -82,7 +82,7 @@ export class AlbumController {
     type: 'string',
     name: '_id',
     description: '앨범 아이디',
-    required: true,
+    required: true
   })
   @Delete('/:_id')
   delete(@Param('_id') _id: string) {

@@ -3,7 +3,7 @@ import {
   HttpException,
   Inject,
   Injectable,
-  Logger,
+  Logger
 } from '@nestjs/common';
 import { AuthRepository } from '../interface/auth.repository';
 import * as process from 'node:process';
@@ -12,7 +12,7 @@ import { LoginRequestDto } from '../../user/dto/request/login.request.dto';
 import { UserRepository } from '../../user/interface/user.repository';
 import {
   PASSWORD_GENERATOR,
-  PasswordGenerator,
+  PasswordGenerator
 } from '../../../lib/password.module';
 import { JwtService } from '@nestjs/jwt';
 import { UpdateInfoRequestDto } from '../dto/request/update-Info.request.dto';
@@ -27,7 +27,7 @@ export class AuthService {
     @Inject('USER_REPOSITORY') private readonly userRepository: UserRepository,
     @Inject(PASSWORD_GENERATOR)
     private readonly passwordGenerator: PasswordGenerator,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   async register(body: RegisterRequestDto) {
@@ -39,7 +39,7 @@ export class AuthService {
         user_id: body.user_id,
         password,
         name: body.name,
-        login_type: LoginType.BASIC,
+        login_type: LoginType.BASIC
       };
       return await this.authRepository.insert(user_data);
     } catch (e) {
@@ -56,19 +56,19 @@ export class AuthService {
       if (!user) throw new BadRequestException('Not Found User');
       const password_confirm = await this.passwordGenerator.confirmHash(
         password,
-        user.password,
+        user.password
       );
 
       if (!password_confirm)
         throw new BadRequestException('Password Incorrect');
       const access_token = await this.jwtService.signAsync(
         {
-          _id: user._id,
+          _id: user._id
         },
         {
           secret: process.env.JWT_ACCESS_TOKEN_SECRET,
-          expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME,
-        },
+          expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME
+        }
       );
       return { access_token };
     } catch (e) {

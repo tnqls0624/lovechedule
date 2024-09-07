@@ -9,7 +9,7 @@ export class AlbumService {
   private readonly logger = new Logger(AlbumService.name);
   constructor(
     @Inject('ALBUM_REPOSITORY')
-    private readonly albumRepository: AlbumRepository,
+    private readonly albumRepository: AlbumRepository
   ) {}
 
   async findAll(_id: string): Promise<Album[]> {
@@ -25,7 +25,7 @@ export class AlbumService {
   async insert(
     user: UserDto,
     _id: string,
-    body: CreateAlbumRequestDto,
+    body: CreateAlbumRequestDto
   ): Promise<Album> {
     try {
       return this.albumRepository.insert(user, _id, body);

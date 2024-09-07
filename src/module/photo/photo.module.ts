@@ -8,8 +8,8 @@ import { PhotoRepositoryImplement } from './repository/photo.repository.implemen
 const infrastructure: Provider[] = [
   {
     provide: 'PHOTO_REPOSITORY',
-    useClass: PhotoRepositoryImplement,
-  },
+    useClass: PhotoRepositoryImplement
+  }
 ];
 
 const services = [PhotoService];
@@ -20,10 +20,10 @@ const controller = [PhotoController];
   imports: [
     MongooseModule.forFeature(
       [{ name: Photo.name, schema: PhotoSchema }],
-      'lovechedule',
-    ),
+      'lovechedule'
+    )
   ],
   controllers: [...controller],
-  providers: [...services, ...infrastructure],
+  providers: [...services, ...infrastructure]
 })
 export class PhotoModule {}

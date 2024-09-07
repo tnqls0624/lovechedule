@@ -6,7 +6,7 @@ export interface AlbumRepository {
   insert(
     user: UserDto,
     _id: string,
-    body: CreateAlbumRequestDto,
+    body: CreateAlbumRequestDto
   ): Promise<Album>;
   findAll(_id: string): Promise<Album[]>;
   delete(_id: string): Promise<Album>;

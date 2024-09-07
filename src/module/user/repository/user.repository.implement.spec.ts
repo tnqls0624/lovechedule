@@ -6,7 +6,7 @@ describe('UserRepositoryImplement', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserRepositoryImplement],
+      providers: [UserRepositoryImplement]
     }).compile();
 
     service = module.get<UserRepositoryImplement>(UserRepositoryImplement);

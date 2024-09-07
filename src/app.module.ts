@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { UserModule } from './module/user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-store';
+import * as redisStore from 'cache-manager-redis-store';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './module/auth/auth.module';
 import { WorkspaceModule } from './module/workspace/workspace.module';
@@ -63,6 +63,8 @@ export class AppModule implements OnModuleInit {
         const response = await axios.get(
           `http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getHoliDeInfo?solYear=${year}&ServiceKey=${service_key}&_type=json&numOfRows=100`
         );
+
+        this.logger.log(`response: ${response}`);
         const data = response.data.response.body.items.item;
         await this.cacheGenerator.setCache(cache_key, data, 0);
         this.logger.log(`Data for year ${year} cached successfully.`);
@@ -87,14 +89,18 @@ export class AppModule implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log('AppModule has been initialized.');
+    try {
+      const current_year = dayjs().year();
+      const years_to_fetch = [current_year - 1, current_year, current_year + 1];
 
-    const current_year = dayjs().year();
-    const years_to_fetch = [current_year - 1, current_year, current_year + 1];
+      for (const year of years_to_fetch) {
+        await this.fetchAndCacheYearData(year);
+      }
 
-    for (const year of years_to_fetch) {
-      await this.fetchAndCacheYearData(year);
+      await this.cleanOldCacheData(years_to_fetch);
+    }catch (e){
+      this.logger.error(e)
     }
 
-    await this.cleanOldCacheData(years_to_fetch);
   }
 }

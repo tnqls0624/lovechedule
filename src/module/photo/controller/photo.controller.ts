@@ -6,14 +6,14 @@ import {
   Res,
   UploadedFile,
   UseInterceptors,
-  Response,
+  Response
 } from '@nestjs/common';
 import {
   ApiBody,
   ApiConsumes,
   ApiOkResponse,
   ApiOperation,
-  ApiTags,
+  ApiTags
 } from '@nestjs/swagger';
 import { PhotoService } from '../service/photo.service';
 import { ResponseDto } from '../../../common/dto/response.dto';
@@ -28,13 +28,13 @@ export class PhotoController {
 
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiOperation({ summary: '이미지 업로드' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: '이미지 파일',
-    type: UploadImageRequestDto,
+    type: UploadImageRequestDto
   })
   @UseInterceptors(FileInterceptor('file'))
   @Post('upload')
@@ -48,14 +48,14 @@ export class PhotoController {
             .map(() => Math.round(Math.random() * 16).toString(16))
             .join('');
           return callback(null, `${randomName}${extname(file.originalname)}`);
-        },
-      }),
-    }),
+        }
+      })
+    })
   )
   uploadFile(@UploadedFile() file: Express.Multer.File) {
     console.log(file);
     return {
-      url: `http://localhost:3000/api/uploads/${file.filename}`,
+      url: `http://localhost:3000/api/uploads/${file.filename}`
     };
   }
 

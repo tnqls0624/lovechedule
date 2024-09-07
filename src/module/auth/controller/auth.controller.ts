@@ -4,7 +4,7 @@ import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
-  ApiTags,
+  ApiTags
 } from '@nestjs/swagger';
 import { UpdateInfoRequestDto } from '../dto/request/update-Info.request.dto';
 import { JwtAuthGuard } from '../guard';
@@ -24,7 +24,7 @@ export class AuthController {
 
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiOperation({ summary: 'Login' })
   @Serialize(LoginResponseDto)
@@ -35,7 +35,7 @@ export class AuthController {
 
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiOperation({ summary: 'Register' })
   @Serialize(RegisterResponseDto)
@@ -56,7 +56,7 @@ export class AuthController {
 
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiOperation({ summary: 'My Info Update' })
   @ApiBearerAuth()
@@ -68,7 +68,7 @@ export class AuthController {
 
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiOperation({ summary: 'Find My Info' })
   @ApiBearerAuth()

@@ -6,7 +6,7 @@ export type PhotoDocument = Photo & Document<Types.ObjectId>;
 
 @Schema({
   timestamps: true,
-  collection: 'photos',
+  collection: 'photos'
 })
 export class Photo {
   @Expose()

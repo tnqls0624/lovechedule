@@ -5,7 +5,7 @@ import { LoginRequestDto } from 'src/module/user/dto/request/login.request.dto';
 export class RegisterRequestDto extends LoginRequestDto {
   @ApiProperty({
     example: '이수빈',
-    description: '이름',
+    description: '이름'
   })
   @MaxLength(10)
   @MinLength(1)

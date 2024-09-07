@@ -17,12 +17,12 @@ export type Payload = {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @Inject('USER_REPOSITORY') private readonly userRepository: UserRepository,
-    private readonly authService: AuthService,
+    private readonly authService: AuthService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_ACCESS_TOKEN_SECRET || 'secret',
+      secretOrKey: process.env.JWT_ACCESS_TOKEN_SECRET || 'secret'
     });
   }
 
@@ -38,7 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       user_id: user.user_id,
       name: user.name,
       login_type: user.login_type,
-      workspaces: user.workspaces,
+      workspaces: user.workspaces
     };
 
     return user_data;

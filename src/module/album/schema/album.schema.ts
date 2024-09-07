@@ -9,7 +9,7 @@ export type AlbumDocument = Album & Document<Types.ObjectId>;
 
 @Schema({
   timestamps: true,
-  collection: 'albums',
+  collection: 'albums'
 })
 export class Album {
   @Expose()

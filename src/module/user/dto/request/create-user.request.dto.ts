@@ -5,7 +5,7 @@ import { LoginType } from '../../../../common/type/user';
 export class CreateUserRequestDto {
   @ApiProperty({
     example: 'dktnqls0624',
-    description: '유저 아이디',
+    description: '유저 아이디'
   })
   @MaxLength(30)
   @MinLength(3)
@@ -13,7 +13,7 @@ export class CreateUserRequestDto {
 
   @ApiProperty({
     example: 'john',
-    description: '유저 이름',
+    description: '유저 이름'
   })
   @MaxLength(20)
   readonly name: string;
@@ -27,7 +27,7 @@ export class CreateUserRequestDto {
 
   @ApiProperty({
     example: LoginType.BASIC,
-    description: '로그인 타입',
+    description: '로그인 타입'
   })
   @IsString()
   readonly login_type: string;

@@ -4,10 +4,12 @@ import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
-  ApiParam
+  ApiParam,
+  ApiTags
 } from '@nestjs/swagger';
 import { ResponseDto } from '../../common/dto/response.dto';
 
+@ApiTags('WEATHER')
 @Controller('weather')
 export class WeatherController {
   constructor(private readonly weatherService: WeatherService) {}
@@ -19,9 +21,14 @@ export class WeatherController {
     type: ResponseDto
   })
   @ApiBearerAuth()
+  @ApiParam({
+    type: 'string',
+    name: 'city',
+    example: 'Seoul-si'
+  })
   // @Serialize(WorkspaceResponseDto)
-  @Get('/')
-  findById() {
-    return this.weatherService.getWeather();
+  @Get('/:city')
+  findByCity(@Param('city') city: string) {
+    return this.weatherService.getWeather(city);
   }
 }

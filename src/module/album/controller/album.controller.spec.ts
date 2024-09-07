@@ -6,7 +6,7 @@ describe('AlbumController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [AlbumController],
+      controllers: [AlbumController]
     }).compile();
 
     controller = module.get<AlbumController>(AlbumController);

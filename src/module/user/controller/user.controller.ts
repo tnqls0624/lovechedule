@@ -3,7 +3,7 @@ import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
-  ApiTags,
+  ApiTags
 } from '@nestjs/swagger';
 import { UserService } from '../service/user.service';
 import { JwtAuthGuard } from '../../auth/guard';
@@ -19,7 +19,7 @@ export class UserController {
   @ApiOperation({ summary: 'Find All User List' })
   @ApiOkResponse({
     type: ResponseDto,
-    description: '성공',
+    description: '성공'
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

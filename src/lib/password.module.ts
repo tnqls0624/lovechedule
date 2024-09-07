@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 export interface PasswordGenerator {
   generateHash(password: string): Promise<string>;
@@ -23,9 +23,9 @@ export const PASSWORD_GENERATOR = 'PASSWORD_GENERATOR';
   providers: [
     {
       provide: PASSWORD_GENERATOR,
-      useClass: PasswordGeneratorImplement,
-    },
+      useClass: PasswordGeneratorImplement
+    }
   ],
-  exports: [PASSWORD_GENERATOR],
+  exports: [PASSWORD_GENERATOR]
 })
 export class PasswordModule {}

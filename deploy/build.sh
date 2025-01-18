@@ -80,7 +80,7 @@ print_service_deploy_times() {
     echo ""
 }
 
-# Swarm 서비스 상태 확인 함수
+# Swarm 서비스 상태 확인 및 배포 스킵 함수
 check_and_skip() {
     local service_name="$1"
     local stack_service_name="$2"
@@ -97,6 +97,18 @@ check_and_skip() {
         return 1
     fi
 }
+
+# MongoDB와 Redis 배포 조건 확인
+if ! check_and_skip "MongoDB" "${STACK_NAME}_mongodb"; then
+    echo "MongoDB 배포 중..."
+    docker service update --force "${STACK_NAME}_mongodb"
+fi
+
+if ! check_and_skip "Redis" "${STACK_NAME}_redis"; then
+    echo "Redis 배포 중..."
+    docker service update --force "${STACK_NAME}_redis"
+fi
+
 
 # 환경 변수 체크 및 설정
 if [ -z "$1" ] || [ -z "$2" ]; then
@@ -128,16 +140,6 @@ IMAGE_NAME="project"
 IMAGE_TAG="latest"
 REGISTRY="soomumu" # Docker Hub 사용자명 입력
 
-# MongoDB와 Redis 배포 조건 확인
-if ! check_and_skip "MongoDB" "${STACK_NAME}_mongodb"; then
-    echo "MongoDB 배포 중..."
-    docker service update --force "${STACK_NAME}_mongodb"
-fi
-
-if ! check_and_skip "Redis" "${STACK_NAME}_redis"; then
-    echo "Redis 배포 중..."
-    docker service update --force "${STACK_NAME}_redis"
-fi
 
 # 이미지 빌드 및 푸시
 build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"

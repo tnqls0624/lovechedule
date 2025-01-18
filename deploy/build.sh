@@ -49,7 +49,7 @@ print_service_status() {
         updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}')
         if [[ -n "$updated_at" ]]; then
             # UTC 시간을 KST로 변환
-            deploy_time=$(TZ='Asia/Seoul' date -d "$updated_at" +"%Y-%m-%d %H:%M:%S")
+            deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S" --utc --date '+9 hours')
         else
             deploy_time="Unknown"
         fi
@@ -66,17 +66,18 @@ print_service_status() {
 # Swarm 서비스 상태 확인 및 필요 시 업데이트 함수
 update_service_if_needed() {
     local service_name="$1"
-    local stack_service_name="${STACK_NAME}_$2"
+    local stack_service_name="$2"
+    local image="$3"
 
     echo "$service_name 상태를 확인 중..."
 
     # Swarm 서비스 상태 확인
-    replicas=$(docker service ls --filter "name=${stack_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
+    local replicas=$(docker service ls --filter "name=${stack_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
     if [[ "$replicas" -ge 1 ]]; then
         echo "$service_name가 이미 실행 중입니다. 업데이트를 건너뜁니다."
     else
         echo "$service_name를 업데이트합니다."
-        docker service update --force "$stack_service_name"
+        docker service update --force --image "$image" "$stack_service_name"
     fi
 }
 

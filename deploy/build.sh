@@ -49,7 +49,7 @@ print_service_status() {
         updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}')
         if [[ -n "$updated_at" ]]; then
             # UTC 시간을 KST로 변환
-            deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S" --utc --date '+9 hours')
+            deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S")
         else
             deploy_time="Unknown"
         fi
@@ -63,21 +63,19 @@ print_service_status() {
     echo "================================="
 }
 
-# Swarm 서비스 상태 확인 및 필요 시 업데이트 함수
-update_service_if_needed() {
+# MongoDB와 Redis 상태 확인 및 업데이트 스킵 함수
+check_service_status_and_skip() {
     local service_name="$1"
-    local stack_service_name="$STACK_NAME""$2"
-    local image="$3"
-
-    echo "$service_name 상태를 확인 중..."
+    local stack_service_name="$2"
 
     # Swarm 서비스 상태 확인
     local replicas=$(docker service ls --filter "name=${stack_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
     if [[ "$replicas" -ge 1 ]]; then
-        echo "$service_name가 이미 실행 중입니다. 업데이트를 건너뜁니다."
+        echo "$service_name가 이미 실행 중입니다. 배포를 건너뜁니다."
+        return 0
     else
-        echo "$service_name를 업데이트합니다."
-        docker service update --force --image "$image" "$stack_service_name"
+        echo "$service_name가 실행 중이지 않습니다. 배포를 진행합니다."
+        return 1
     fi
 }
 
@@ -116,9 +114,14 @@ build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"
 # Compose 파일 설정
 set_compose_file "$ENV"
 
-# MongoDB와 Redis 서비스 업데이트 확인 및 처리
-update_service_if_needed "MongoDB" "mongodb"
-update_service_if_needed "Redis" "redis"
+# MongoDB와 Redis 배포 확인 및 처리
+if ! check_service_status_and_skip "MongoDB" "${STACK_NAME}_mongodb"; then
+    docker service update --force "${STACK_NAME}_mongodb"
+fi
+
+if ! check_service_status_and_skip "Redis" "${STACK_NAME}_redis"; then
+    docker service update --force "${STACK_NAME}_redis"
+fi
 
 # 스크립트 옵션 처리
 if [ "$DEPLOY" = true ]; then

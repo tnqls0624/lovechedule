@@ -30,9 +30,9 @@ build() {
     local services=("$@")
     echo "빌드를 시작합니다..."
     if [ ${#services[@]} -gt 0 ]; then
-        docker-compose -f ./docker-compose/base.yml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") build "${services[@]}"
+        docker-compose -f ./docker-compose/base.yaml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") build "${services[@]}"
     else
-        docker-compose -f ./docker-compose/base.yml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") build
+        docker-compose -f ./docker-compose/base.yaml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") build
     fi
     echo "빌드가 완료되었습니다."
 }

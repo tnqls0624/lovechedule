@@ -27,13 +27,11 @@ set_compose_file() {
 
 # 빌드 함수
 build() {
-    local services=("$@") # 모든 전달된 서비스 이름을 배열로 처리
+    local services=("$@")
     echo "빌드를 시작합니다..."
     if [ ${#services[@]} -gt 0 ]; then
-        # 여러 서비스가 지정되면 해당 서비스들만 빌드
         docker-compose -f ./docker-compose/base.yml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") build "${services[@]}"
     else
-        # 서비스가 지정되지 않으면 모든 서비스 빌드
         docker-compose -f ./docker-compose/base.yml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") build
     fi
     echo "빌드가 완료되었습니다."
@@ -41,16 +39,30 @@ build() {
 
 # 배포 함수
 deploy() {
-    local services=("$@") # 모든 전달된 서비스 이름을 배열로 처리
+    local services=("$@")
     echo "배포를 시작합니다..."
     if [ ${#services[@]} -gt 0 ]; then
-        # 여러 서비스가 지정되면 해당 서비스들만 배포
         docker-compose -f ./docker-compose/base.yml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") up -d "${services[@]}"
     else
-        # 서비스가 지정되지 않으면 모든 서비스 배포
         docker-compose -f ./docker-compose/base.yml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") up -d
     fi
     echo "배포가 완료되었습니다."
+}
+
+# 컨테이너 상태 확인 및 필요 시 배포 함수
+check_and_deploy() {
+    local service="$1"
+    local image="$2"
+    echo "$service 상태를 확인 중..."
+
+    # 컨테이너 실행 여부 확인
+    local container_id=$(docker ps --filter "ancestor=$image" --format "{{.ID}}")
+    if [ -z "$container_id" ]; then
+        echo "$service가 실행 중이지 않습니다. 배포를 시작합니다."
+        deploy "$service"
+    else
+        echo "$service는 이미 실행 중입니다. 배포하지 않습니다."
+    fi
 }
 
 # 컨테이너 상태 및 버전 확인 함수
@@ -60,25 +72,13 @@ check_containers() {
     echo ""
 
     SERVER_NODE_VERSION=$(grep "^FROM node:" ../server/Dockerfile | awk '{print $2}')
-    echo "SERVER_NODE_VERSION: $API_NODE_VERSION"
+    echo "SERVER_NODE_VERSION: $SERVER_NODE_VERSION"
 
-    # MongoDB 버전 확인
-    MONGO_CONTAINER=$(docker ps --filter "ancestor=mongo" --format "{{.ID}}")
-    if [ -n "$MONGO_CONTAINER" ]; then
-        MONGO_VERSION=$(docker exec $MONGO_CONTAINER mongod --version | grep "db version" | awk '{print $3}')
-        echo "MongoDB_VERSION: $MONGO_VERSION"
-    else
-        echo "MongoDB를 배포하지 않습니다."
-    fi
+    # MongoDB 확인 및 배포
+    check_and_deploy "mongodb" "mongo"
 
-    # Redis 버전 확인
-    REDIS_CONTAINER=$(docker ps --filter "ancestor=redis" --format "{{.ID}}")
-    if [ -n "$REDIS_CONTAINER" ]; then
-        REDIS_VERSION=$(docker exec $REDIS_CONTAINER redis-server --version | awk '{print $3}' | cut -d'=' -f2)
-        echo "REDIS_VERSION: $REDIS_VERSION"
-    else
-        echo "Redis를 배포하지 않습니다."
-    fi
+    # Redis 확인 및 배포
+    check_and_deploy "redis" "redis"
 
     echo ""
     BUILD_VERSION=$(git rev-parse --short HEAD)
@@ -110,7 +110,7 @@ for arg in "$@"; do
     if [[ "$arg" == "--deploy" ]]; then
         DEPLOY=true
     else
-        SERVICES+=("$arg") # 서비스 이름을 배열에 추가
+        SERVICES+=("$arg")
     fi
 done
 

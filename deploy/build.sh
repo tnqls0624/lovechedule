@@ -2,13 +2,13 @@
 
 # 환경에 따른 docker-compose 파일 설정
 set_compose_file() {
-    local env="$2"
+    local env="$1"
 
     COMPOSE_FILE=()
 
     case "$env" in
         dev)
-            COMPOSE_FILE=("./docker-compose/expand/dev.yml")
+            COMPOSE_FILE=("./docker-compose/syslog-linux.yml")
             ;;
         stg)
             COMPOSE_FILE=("./docker-compose/syslog-linux.yml")

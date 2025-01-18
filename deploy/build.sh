@@ -14,7 +14,7 @@ set_compose_file() {
 
     case "$env" in
         dev | stg | prd)
-            COMPOSE_FILE="./docker-compose/syslog-linux.yaml"
+            COMPOSE_FILE="./docker-compose/base.yaml" "./docker-compose/syslog-linux.yaml"
             ;;
         *)
             echo "지원하지 않는 환경입니다: $env"

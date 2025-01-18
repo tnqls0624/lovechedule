@@ -10,8 +10,7 @@ services:
     container_name: mongodb
     deploy:
       replicas: 1
-    restart: unless-stopped
-    pull_policy: if-not-present
+    restart: always
     ports:
       - "27017:27017"
     healthcheck:
@@ -27,8 +26,7 @@ services:
     container_name: redis
     deploy:
       replicas: 1
-    restart: unless-stopped
-    pull_policy: if-not-present
+    restart: always
     ports:
       - "6379:6379"
     healthcheck:
@@ -47,7 +45,7 @@ services:
     container_name: lovechedule-server
     deploy:
       replicas: 1
-    restart: unless-stopped
+    restart: always
     ports:
       - "3000:3000"
     networks:

@@ -32,7 +32,7 @@ services:
     build:
       context: ../../server
       dockerfile: Dockerfile
-    image: lovechedule-server:latest
+    image: soomumu/project:latest
     deploy:
       replicas: 2
       restart_policy:

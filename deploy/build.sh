@@ -25,103 +25,59 @@ set_compose_file() {
     echo "$env 환경을 사용하여 ${COMPOSE_FILE[*]} 파일을 설정합니다."
 }
 
-# 빌드 함수
-build() {
-    local services=("$@")
-    echo "빌드를 시작합니다..."
-    if [ ${#services[@]} -gt 0 ]; then
-        docker-compose -f ./docker-compose/base.yaml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") build "${services[@]}"
-    else
-        docker-compose -f ./docker-compose/base.yaml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") build
-    fi
-    echo "빌드가 완료되었습니다."
+# Docker Swarm 스택 배포 함수
+deploy_stack() {
+    local stack_name="$1"
+    echo "Docker Swarm 스택을 배포합니다..."
+    docker stack deploy -c ./docker-compose/base.yaml $(printf -- '-c %s ' "${COMPOSE_FILE[@]}") "$stack_name"
+    echo "Docker Swarm 스택 배포가 완료되었습니다."
 }
 
-# 배포 함수
-deploy() {
-    local services=("$@")
-    echo "배포를 시작합니다..."
-    if [ ${#services[@]} -gt 0 ]; then
-        docker-compose -f ./docker-compose/base.yaml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") up -d "${services[@]}"
-    else
-        docker-compose -f ./docker-compose/base.yaml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") up -d
-    fi
-    echo "배포가 완료되었습니다."
-}
-
-# 컨테이너 상태 확인 및 필요 시 배포 함수
-check_and_deploy() {
-    local service="$1"
-    local image="$2"
-    echo "$service 상태를 확인 중..."
-
-    # 컨테이너 실행 여부 확인
-    local container_id=$(docker ps --filter "ancestor=$image" --format "{{.ID}}")
-    if [ -z "$container_id" ]; then
-        echo "$service가 실행 중이지 않습니다. 배포를 시작합니다."
-        deploy "$service"
-    else
-        echo "$service는 이미 실행 중입니다. 배포하지 않습니다."
-    fi
-}
-
-# 컨테이너 상태 및 버전 확인 함수
-check_containers() {
+# 컨테이너 상태 확인 함수 (Swarm 환경)
+check_services() {
+    local stack_name="$1"
     echo ""
     echo "================================="
-    echo ""
-
-    SERVER_NODE_VERSION=$(grep "^FROM node:" ../server/Dockerfile | awk '{print $2}')
-    echo "SERVER_NODE_VERSION: $SERVER_NODE_VERSION"
-
-    # MongoDB 확인 및 배포
-    check_and_deploy "mongodb" "mongo"
-
-    # Redis 확인 및 배포
-    check_and_deploy "redis" "redis"
-
-    echo ""
-    BUILD_VERSION=$(git rev-parse --short HEAD)
-    echo "BUILD VERSION: $BUILD_VERSION"
-    CURRENT_TIME=$(date +"%Y-%m-%d %H:%M:%S")
-    echo "배포 및 빌드 시간: $CURRENT_TIME"
-    echo ""
+    echo "Docker Swarm 서비스 상태 확인: $stack_name"
     echo "================================="
+    docker stack services "$stack_name"
     echo ""
-    docker ps
+    echo "Docker Swarm 서비스 상태 확인 완료"
+    echo ""
 }
 
 # 환경 변수 체크 및 설정
 if [ -z "$1" ] || [ -z "$2" ]; then
-    echo "사용법: $0 <타입> <환경> [서비스명 ...] [--deploy]"
-    echo "예: $0 stg lovechedule-server --deploy"
-    echo "예: $0 stg --deploy"
+    echo "사용법: $0 <스택 이름> <환경> [--deploy]"
+    echo "예: $0 lovechedule stg --deploy"
     exit 1
 fi
 
-TYPE="$1"
+STACK_NAME="$1"
 ENV="$2"
-shift 2 # 첫 두 개의 인수 (타입과 환경)을 제거하고 나머지 인수만 남김
+shift 2 # 첫 두 개의 인수 (스택 이름과 환경)을 제거하고 나머지 인수만 남김
 
-# 남은 인수에서 '--deploy' 여부 확인
-SERVICES=()
+# '--deploy' 여부 확인
 DEPLOY=false
 for arg in "$@"; do
     if [[ "$arg" == "--deploy" ]]; then
         DEPLOY=true
-    else
-        SERVICES+=("$arg")
     fi
 done
 
-set_compose_file "$TYPE" "$ENV"
+# Swarm 초기화 확인 및 설정
+if ! docker info | grep -q "Swarm: active"; then
+    echo "Swarm이 활성화되지 않았습니다. Swarm을 초기화합니다..."
+    docker swarm init
+fi
+
+set_compose_file "$ENV"
 
 # 스크립트 옵션 처리
 if [ "$DEPLOY" = true ]; then
-    build "${SERVICES[@]}"
-    deploy "${SERVICES[@]}"
-    check_containers
+    deploy_stack "$STACK_NAME"
+    check_services "$STACK_NAME"
 else
-    build "${SERVICES[@]}"
-    check_containers
+    echo "배포 없이 Swarm 상태를 확인합니다."
+    check_services "$STACK_NAME"
 fi

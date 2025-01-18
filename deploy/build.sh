@@ -8,13 +8,13 @@ set_compose_file() {
 
     case "$env" in
         dev)
-            COMPOSE_FILE=("./docker-compose/syslog-linux.yml")
+            COMPOSE_FILE=("./docker-compose/syslog-linux.yaml")
             ;;
         stg)
-            COMPOSE_FILE=("./docker-compose/syslog-linux.yml")
+            COMPOSE_FILE=("./docker-compose/syslog-linux.yaml")
             ;;
         prd)
-            COMPOSE_FILE=("./docker-compose/syslog-linux.yml")
+            COMPOSE_FILE=("./docker-compose/syslog-linux.yaml")
             ;;
         *)
             echo "지원하지 않는 환경입니다: $env"
@@ -42,9 +42,9 @@ deploy() {
     local services=("$@")
     echo "배포를 시작합니다..."
     if [ ${#services[@]} -gt 0 ]; then
-        docker-compose -f ./docker-compose/base.yml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") up -d "${services[@]}"
+        docker-compose -f ./docker-compose/base.yaml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") up -d "${services[@]}"
     else
-        docker-compose -f ./docker-compose/base.yml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") up -d
+        docker-compose -f ./docker-compose/base.yaml $(printf -- '-f %s ' "${COMPOSE_FILE[@]}") up -d
     fi
     echo "배포가 완료되었습니다."
 }

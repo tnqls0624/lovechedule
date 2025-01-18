@@ -71,12 +71,11 @@ services:
         condition: on-failure
       labels:
         # /app 경로 처리
-        - "traefik.http.routers.api.rule=Host(`lovechedule.com`) && PathPrefix(`/app`)" # /app 경로 처리
-        - "traefik.http.routers.api.entrypoints=web" # HTTP 엔트리포인트
-        - "traefik.http.routers.api.service=lovechedule-service" # 동일 서비스로 연결
-        - "traefik.http.middlewares.api-strip-prefix.stripprefix.prefixes=/app" # /app 제거
-        - "traefik.http.routers.api.middlewares=api-strip-prefix"
-
+        - "traefik.enable=true"
+        - "traefik.http.routers.lovechedule.rule=Host(`lovechedule.com`) && PathPrefix(`/app`)"
+        - "traefik.http.routers.lovechedule.entrypoints=web"
+        - "traefik.http.routers.lovechedule.middlewares=strip-app-prefix"
+        - "traefik.http.middlewares.strip-app-prefix.stripprefix.prefixes=/app"
         # 내부 서비스 포트 지정
         - "traefik.http.services.lovechedule-service.loadbalancer.server.port=3000" # 내부 서비스 포트
     networks:

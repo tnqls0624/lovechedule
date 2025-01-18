@@ -47,6 +47,39 @@ deploy_stack() {
     echo "Docker Swarm 스택 배포가 완료되었습니다."
 }
 
+# Swarm 서비스 상태 확인 및 배포 시간 출력 함수
+print_service_deploy_times() {
+    local stack_name="$1"
+    echo ""
+    echo "================================="
+    echo "Docker Swarm 서비스 상태 및 배포 시간 확인: $stack_name"
+    echo "================================="
+
+    docker stack services "$stack_name" | tail -n +2 | while read -r line; do
+        service_id=$(echo "$line" | awk '{print $1}')
+        service_name=$(echo "$line" | awk '{print $2}')
+        replicas=$(echo "$line" | awk '{print $4}')
+        image=$(echo "$line" | awk '{print $5}')
+
+        # 배포 시간 확인
+        updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}')
+        if [[ -n "$updated_at" ]]; then
+            deploy_time=$(date -d "$updated_at" +"%Y-%m-%d %H:%M:%S")
+        else
+            deploy_time="Unknown"
+        fi
+
+        echo "서비스: $service_name"
+        echo " - 이미지: $image"
+        echo " - 상태: $replicas"
+        echo " - 최근 배포 시간: $deploy_time"
+        echo ""
+    done
+
+    echo "================================="
+    echo ""
+}
+
 # Swarm 서비스 상태 확인 함수
 check_and_skip() {
     local service_name="$1"
@@ -63,19 +96,6 @@ check_and_skip() {
         echo "$service_name가 실행 중이지 않습니다. 배포를 진행합니다."
         return 1
     fi
-}
-
-# Swarm 서비스 상태 확인 함수
-check_services() {
-    local stack_name="$1"
-    echo ""
-    echo "================================="
-    echo "Docker Swarm 서비스 상태 확인: $stack_name"
-    echo "================================="
-    docker stack services "$stack_name"
-    echo ""
-    echo "Docker Swarm 서비스 상태 확인 완료"
-    echo ""
 }
 
 # 환경 변수 체크 및 설정
@@ -128,8 +148,8 @@ set_compose_file "$ENV"
 # 스크립트 옵션 처리
 if [ "$DEPLOY" = true ]; then
     deploy_stack "$STACK_NAME"
-    check_services "$STACK_NAME"
+    print_service_deploy_times "$STACK_NAME"
 else
     echo "배포 없이 Swarm 상태를 확인합니다."
-    check_services "$STACK_NAME"
+    print_service_deploy_times "$STACK_NAME"
 fi

@@ -1,5 +1,13 @@
 #!/bin/bash
 
+STACK_NAME="$1"  # 첫 번째 인수는 스택 이름
+ENV="$2"         # 두 번째 인수는 환경 이름
+
+# 이미지 이름 및 레지스트리 설정
+IMAGE_NAME="project"
+IMAGE_TAG="latest"
+REGISTRY="soomumu"  # Docker Hub 사용자명 입력
+
 # Swarm Compose 파일 설정 함수
 set_compose_file() {
     local env="$1"
@@ -71,10 +79,12 @@ check_service_status_and_skip() {
     # Swarm 서비스 상태 확인
     local replicas=$(docker service ls --filter "name=${stack_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
     if [[ "$replicas" -ge 1 ]]; then
-        echo "$service_name가 이미 실행 중입니다. 배포를 건너뜁니다."
+        echo "$service_name"
+        echo "$stack_service_name 이미 실행 중입니다. 배포를 건너뜁니다."
         return 0
     else
-        echo "$service_name가 실행 중이지 않습니다. 배포를 진행합니다."
+        echo "$service_name"
+        echo "$stack_service_name 실행 중이지 않습니다. 배포를 진행합니다."
         return 1
     fi
 }
@@ -85,9 +95,6 @@ if [ -z "$1" ] || [ -z "$2" ]; then
     echo "예: $0 lovechedule prd --deploy"
     exit 1
 fi
-
-STACK_NAME="$1"  # 첫 번째 인수는 스택 이름
-ENV="$2"         # 두 번째 인수는 환경 이름
 
 # '--deploy' 여부 확인
 DEPLOY=false
@@ -102,11 +109,6 @@ if ! docker info | grep -q "Swarm: active"; then
     echo "Swarm이 활성화되지 않았습니다. Swarm을 초기화합니다..."
     docker swarm init
 fi
-
-# 이미지 이름 및 레지스트리 설정
-IMAGE_NAME="project"
-IMAGE_TAG="latest"
-REGISTRY="soomumu"  # Docker Hub 사용자명 입력
 
 # 이미지 빌드 및 푸시
 build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"

@@ -65,7 +65,7 @@ print_service_deploy_times() {
         updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}')
         if [[ -n "$updated_at" ]]; then
             # UTC 시간을 KST로 변환
-            deploy_time=$(TZ='Asia/Seoul' date -d "$updated_at" +"%Y-%m-%d %H:%M:%S")
+            deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S" --utc --date '+9 hours')
         else
             deploy_time="Unknown"
         fi

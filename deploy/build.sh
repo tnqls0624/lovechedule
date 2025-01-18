@@ -86,9 +86,9 @@ if ! docker info | grep -q "Swarm: active"; then
 fi
 
 # 이미지 이름 및 레지스트리 설정
-IMAGE_NAME="lovechedule-server"
+IMAGE_NAME="project"
 IMAGE_TAG="latest"
-REGISTRY="<YOUR_DOCKER_REGISTRY>" # Docker Hub 사용자명 또는 AWS ECR 주소 입력
+REGISTRY="soomumu" # Docker Hub 사용자명 또는 AWS ECR 주소 입력
 
 # 이미지 빌드 및 푸시
 build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"

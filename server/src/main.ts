@@ -15,7 +15,7 @@ async function bootstrap() {
   const redis_io_adapter = await connectRedis(app);
   const logger = new Logger(bootstrap.name);
   setupSwagger(app);
-  const api_prefix = '/v1/app';
+  const api_prefix = '/app';
   app.setGlobalPrefix(api_prefix);
   app.useWebSocketAdapter(redis_io_adapter);
   app.useGlobalInterceptors(new SuccessInterceptor());

@@ -59,11 +59,8 @@ check_containers() {
     echo "================================="
     echo ""
 
-    OFFICE_NODE_VERSION=$(grep "^FROM node:" ../server/office/Dockerfile | awk '{print $2}')
-    echo "OFFICE_NODE_VERSION: $OFFICE_NODE_VERSION"
-
-    API_NODE_VERSION=$(grep "^FROM node:" ../server/api/Dockerfile | awk '{print $2}')
-    echo "API_NODE_VERSION: $API_NODE_VERSION"
+    SERVER_NODE_VERSION=$(grep "^FROM node:" ../server/Dockerfile | awk '{print $2}')
+    echo "SERVER_NODE_VERSION: $API_NODE_VERSION"
 
     # MongoDB 버전 확인
     MONGO_CONTAINER=$(docker ps --filter "ancestor=mongo" --format "{{.ID}}")
@@ -97,8 +94,8 @@ check_containers() {
 # 환경 변수 체크 및 설정
 if [ -z "$1" ] || [ -z "$2" ]; then
     echo "사용법: $0 <타입> <환경> [서비스명 ...] [--deploy]"
-    echo "예: $0 five dev gitplechat-bo-api gitplechat-bo-office --deploy"
-    echo "예: $0 gov prd --deploy"
+    echo "예: $0 stg lovechedule-server --deploy"
+    echo "예: $0 stg --deploy"
     exit 1
 fi
 

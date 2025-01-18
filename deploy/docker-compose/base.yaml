@@ -70,14 +70,15 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        - "traefik.enable=true" # Traefik 활성화
-        - "traefik.http.routers.lovechedule.rule=Host(`lovechedule.com`)" # 호스트 이름 설정
-        - "traefik.http.routers.lovechedule.entrypoints=web" # HTTP 엔트리포인트
-        - "traefik.http.routers.lovechedule.service=lovechedule-server" # 서비스 이름 설정
-        - "traefik.http.services.lovechedule-service.loadbalancer.server.port=3000" # 내부 서비스 포트
+        # /app 경로 처리
         - "traefik.http.routers.api.rule=Host(`lovechedule.com`) && PathPrefix(`/app`)" # /app 경로 처리
         - "traefik.http.routers.api.entrypoints=web" # HTTP 엔트리포인트
-#        - "traefik.http.routers.api.service=lovechedule-server" # 동일 서비스로 연결
+        - "traefik.http.routers.api.service=lovechedule-service" # 동일 서비스로 연결
+        - "traefik.http.middlewares.api-strip-prefix.stripprefix.prefixes=/app" # /app 제거
+        - "traefik.http.routers.api.middlewares=api-strip-prefix"
+
+        # 내부 서비스 포트 지정
+        - "traefik.http.services.lovechedule-service.loadbalancer.server.port=3000" # 내부 서비스 포트
     networks:
       - lovechedule-network
 

@@ -1,26 +1,18 @@
 version: "3.8"
 
-networks:
-  lovechedule-network:
-    driver: bridge
-
 services:
   mongodb:
     image: mongo:latest
     container_name: mongodb
     deploy:
       replicas: 1
-    restart: always
+      restart_policy:
+        condition: on-failure
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: 1234
-    healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.runCommand('ping').ok" ]
-      interval: 10s
-      timeout: 10s
-      retries: 5
     networks:
       - lovechedule-network
 
@@ -29,14 +21,10 @@ services:
     container_name: redis
     deploy:
       replicas: 1
-    restart: always
+      restart_policy:
+        condition: on-failure
     ports:
       - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     networks:
       - lovechedule-network
 
@@ -45,16 +33,15 @@ services:
       context: ../../server
       dockerfile: Dockerfile
     image: lovechedule-server:latest
-    container_name: lovechedule-server
     deploy:
-      replicas: 1
-    restart: always
+      replicas: 2
+      restart_policy:
+        condition: on-failure
     ports:
       - "3000:3000"
     networks:
       - lovechedule-network
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+
+networks:
+  lovechedule-network:
+    driver: overlay

@@ -1,0 +1,54 @@
+version: "3.8"
+
+networks:
+  lovechedule-network:
+    driver: bridge
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    deploy:
+      replicas: 1
+    restart: unless-stopped
+    pull_policy: if-not-present
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.runCommand('ping').ok" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - lovechedule-network
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    deploy:
+      replicas: 1
+    restart: unless-stopped
+    pull_policy: if-not-present
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - lovechedule-network
+
+  lovechedule-server:
+    build:
+      context: ../../server
+      dockerfile: Dockerfile
+    image: lovechedule-server:latest
+    container_name: lovechedule-server
+    deploy:
+      replicas: 1
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - lovechedule-network

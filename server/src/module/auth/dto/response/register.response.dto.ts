@@ -1,6 +1,6 @@
-import { LoginRequestDto } from 'src/module/user/dto/request/login.request.dto';
+import { LoginRequestDto } from '../../../user/dto/request/login.request.dto';
 import { Expose } from 'class-transformer';
-import { LoginType, UserType } from 'src/common/type/user';
+import { LoginType, UserType } from '../../../../common/type/user';
 
 export class RegisterResponseDto extends LoginRequestDto {
   @Expose()

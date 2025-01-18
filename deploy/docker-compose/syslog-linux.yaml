@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  mongodb:
+    logging:
+      driver: syslog
+      options:
+        syslog-facility: local0
+        tag: mongo
+
+  lovechedule-server:
+    logging:
+      driver: syslog
+      options:
+        syslog-facility: local0
+        tag: lovechedule-server
+
+  redis:
+    logging:
+      driver: syslog
+      options:
+        syslog-facility: local0
+        tag: redis

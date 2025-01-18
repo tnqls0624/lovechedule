@@ -13,7 +13,7 @@ import { User } from '../../../common/decorator/user.decorator';
 import { LoginResponseDto } from '../dto/response/login.response.dto';
 import { Serialize } from '../../../interceptor/serialize.interceptor';
 import { ResponseDto } from '../../../common/dto/response.dto';
-import { LoginRequestDto } from 'src/module/user/dto/request/login.request.dto';
+import { LoginRequestDto } from '../../user/dto/request/login.request.dto';
 import { RegisterRequestDto } from '../dto/request/register.request.dto';
 import { RegisterResponseDto } from '../dto/response/register.response.dto';
 

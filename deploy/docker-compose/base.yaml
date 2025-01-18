@@ -53,3 +53,8 @@ services:
       - "3000:3000"
     networks:
       - lovechedule-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

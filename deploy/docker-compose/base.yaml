@@ -53,9 +53,6 @@ services:
 
   # lovechedule 애플리케이션
   lovechedule-server:
-    build:
-      context: ../../server
-      dockerfile: Dockerfile
     image: soomumu/project:latest
     environment:
       - MONGO_URL=mongodb://root:1234@mongodb:27017/lovechedule?authSource=admin

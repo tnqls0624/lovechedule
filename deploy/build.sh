@@ -9,12 +9,22 @@ IMAGE_TAG="latest"
 REGISTRY="soomumu"  # Docker Hub 사용자명 입력
 
 # Swarm Compose 파일 설정 함수
-set_compose_file() {
+set_compose_files() {
     local env="$1"
 
+    # 기본 Compose 파일
+    COMPOSE_FILES=("./docker-compose/base.yaml")
+
+    # 환경별 추가 Compose 파일
     case "$env" in
-        dev | stg | prd)
-            COMPOSE_FILE="./docker-compose/base.yaml" "./docker-compose/syslog-linux.yaml"
+        dev)
+            COMPOSE_FILES+=("./docker-compose/dev-override.yaml")
+            ;;
+        stg)
+            COMPOSE_FILES+=("./docker-compose/stg-override.yaml")
+            ;;
+        prd)
+            COMPOSE_FILES+=("./docker-compose/prd-override.yaml")
             ;;
         *)
             echo "지원하지 않는 환경입니다: $env"
@@ -23,7 +33,10 @@ set_compose_file() {
             ;;
     esac
 
-    echo "$env 환경을 사용하여 $COMPOSE_FILE 파일을 설정합니다."
+    echo "$env 환경을 위한 Compose 파일:"
+    for file in "${COMPOSE_FILES[@]}"; do
+        echo " - $file"
+    done
 }
 
 # Docker 이미지 빌드 및 푸시 함수

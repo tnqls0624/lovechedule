@@ -25,6 +25,20 @@ set_compose_file() {
     echo "$env 환경을 사용하여 ${COMPOSE_FILE[*]} 파일을 설정합니다."
 }
 
+# Docker 이미지 빌드 및 푸시 함수
+build_and_push_image() {
+    local image_name="$1"
+    local tag="$2"
+    local registry="$3"
+
+    echo "Docker 이미지를 빌드합니다: ${image_name}:${tag}"
+    docker build -t "${image_name}:${tag}" ./server
+
+    echo "Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag}"
+    docker tag "${image_name}:${tag}" "${registry}/${image_name}:${tag}"
+    docker push "${registry}/${image_name}:${tag}"
+}
+
 # Docker Swarm 스택 배포 함수
 deploy_stack() {
     local stack_name="$1"
@@ -49,13 +63,13 @@ check_services() {
 # 환경 변수 체크 및 설정
 if [ -z "$1" ] || [ -z "$2" ]; then
     echo "사용법: $0 <스택 이름> <환경> [--deploy]"
-    echo "예: $0 lovechedule stg --deploy"
+    echo "예: $0 lovechedule prd --deploy"
     exit 1
 fi
 
-STACK_NAME="$1"
-ENV="$2"
-shift 2 # 첫 두 개의 인수 (스택 이름과 환경)을 제거하고 나머지 인수만 남김
+STACK_NAME="$1"  # 첫 번째 인수는 스택 이름
+ENV="$2"         # 두 번째 인수는 환경 이름
+shift 2          # 첫 두 개의 인수 제거
 
 # '--deploy' 여부 확인
 DEPLOY=false
@@ -71,6 +85,15 @@ if ! docker info | grep -q "Swarm: active"; then
     docker swarm init
 fi
 
+# 이미지 이름 및 레지스트리 설정
+IMAGE_NAME="lovechedule-server"
+IMAGE_TAG="latest"
+REGISTRY="<YOUR_DOCKER_REGISTRY>" # Docker Hub 사용자명 또는 AWS ECR 주소 입력
+
+# 이미지 빌드 및 푸시
+build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"
+
+# Compose 파일 설정
 set_compose_file "$ENV"
 
 # 스크립트 옵션 처리

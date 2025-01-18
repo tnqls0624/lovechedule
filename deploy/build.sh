@@ -84,7 +84,7 @@ print_service_deploy_times() {
 # Swarm 서비스 상태 확인 및 배포 스킵 함수
 check_and_skip() {
     local service_name="$1"
-    local stack_service_name="$2"
+    local stack_service_name="${STACK_NAME}_$2"  # STACK_NAME과 서비스 이름을 결합
 
     echo "$service_name 상태를 확인 중..."
 

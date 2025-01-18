@@ -2,7 +2,7 @@ import { Module, Provider } from '@nestjs/common';
 import { WeatherController } from './controller/weather.controller';
 import { WeatherService } from './service/weather.service';
 import { ScheduleModule } from '@nestjs/schedule';
-import { CacheModule } from '../lib/cache.module';
+import { CacheModule } from '../../lib/cache.module';
 
 const infrastructure: Provider[] = [
   // {

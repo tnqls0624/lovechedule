@@ -1,21 +1,46 @@
 version: "3.8"
 
 services:
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
+  # Traefik 리버스 프록시 서비스
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--api.insecure=true" # 대시보드 활성화 (보안 없음)
+      - "--providers.docker=true" # Docker 제공자 활성화
+      - "--providers.docker.swarmMode=true" # Swarm 모드 지원
+      - "--providers.docker.exposedbydefault=false" # 기본적으로 서비스 노출 방지
+      - "--entrypoints.web.address=:80" # HTTP 엔트리포인트
+    ports:
+      - "80:80" # HTTP 포트
+      - "8080:8080" # Traefik Dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock" # Docker 소켓
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 1234
+      placement:
+        constraints:
+          - node.role == manager # Swarm 매니저 노드에서 실행
     networks:
       - lovechedule-network
 
+  # MongoDB 서비스
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 1234
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - lovechedule-network
+
+  # Redis 서비스
   redis:
     image: redis:latest
     container_name: redis
@@ -23,11 +48,10 @@ services:
       replicas: 1
       restart_policy:
         condition: on-failure
-    ports:
-      - "6379:6379"
     networks:
       - lovechedule-network
 
+  # lovechedule 애플리케이션
   lovechedule-server:
     build:
       context: ../../server
@@ -45,8 +69,11 @@ services:
       replicas: 2
       restart_policy:
         condition: on-failure
-    ports:
-      - "3000:3000"
+      labels:
+        - "traefik.enable=true" # Traefik 활성화
+        - "traefik.http.routers.lovechedule.rule=Host(`lovechedule.com`)" # 호스트 이름 설정
+        - "traefik.http.routers.lovechedule.entrypoints=web" # HTTP 엔트리포인트
+        - "traefik.http.services.lovechedule.loadbalancer.server.port=3000" # 내부 서비스 포트
     networks:
       - lovechedule-network
 

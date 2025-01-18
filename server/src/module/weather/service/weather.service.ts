@@ -1,7 +1,7 @@
 import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { Cron } from '@nestjs/schedule';
-import { CACHE_GENERATOR } from '../../lib/cache.module';
+import { CACHE_GENERATOR } from '../../../lib/cache.module';
 import * as process from 'node:process';
 
 @Injectable()

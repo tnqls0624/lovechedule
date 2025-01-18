@@ -14,7 +14,7 @@ import {
   CACHE_GENERATOR,
   CacheModule as CacheStoreModule
 } from './lib/cache.module';
-import { WeatherModule } from './weather/weather.module';
+import { WeatherModule } from './module/weather/weather.module';
 import axios from 'axios';
 import dayjs from 'dayjs';
 

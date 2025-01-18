@@ -7,7 +7,7 @@ import {
   ApiParam,
   ApiTags
 } from '@nestjs/swagger';
-import { ResponseDto } from '../../common/dto/response.dto';
+import { ResponseDto } from '../../../common/dto/response.dto';
 
 @ApiTags('WEATHER')
 @Controller('weather')

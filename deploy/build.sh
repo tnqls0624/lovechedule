@@ -65,7 +65,7 @@ print_service_deploy_times() {
         updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}')
         if [[ -n "$updated_at" ]]; then
             # UTC 시간을 KST로 변환
-            deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S" --utc --date '+9 hours')
+            deploy_time=$(TZ='Asia/Seoul' date -d "$updated_at" +"%Y-%m-%d %H:%M:%S")
         else
             deploy_time="Unknown"
         fi
@@ -81,22 +81,20 @@ print_service_deploy_times() {
     echo ""
 }
 
-
 # Swarm 서비스 상태 확인 및 배포 스킵 함수
 check_and_skip() {
     local service_name="$1"
-    local full_service_name="${STACK_NAME}_${service_name}"
+    local stack_service_name="$2"
 
     echo "$service_name 상태를 확인 중..."
 
     # Swarm 서비스 상태 확인
-    local replicas=$(docker service ls --filter "name=${full_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
-    local total_replicas=$(docker service ls --filter "name=${full_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $2}')
-    if [[ "$replicas" -eq "$total_replicas" && -n "$replicas" ]]; then
+    local replicas=$(docker service ls --filter "name=${stack_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
+    if [[ "$replicas" -ge 1 ]]; then
         echo "$service_name가 이미 실행 중입니다. 배포를 건너뜁니다."
         return 0
     else
-        echo "$service_name가 실행 중이지 않거나 일부 컨테이너가 비정상 상태입니다. 배포를 진행합니다."
+        echo "$service_name가 실행 중이지 않습니다. 배포를 진행합니다."
         return 1
     fi
 }
@@ -111,7 +109,6 @@ if ! check_and_skip "Redis" "${STACK_NAME}_redis"; then
     echo "Redis 배포 중..."
     docker service update --force "${STACK_NAME}_redis"
 fi
-
 
 # 환경 변수 체크 및 설정
 if [ -z "$1" ] || [ -z "$2" ]; then

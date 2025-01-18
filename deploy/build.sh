@@ -32,10 +32,9 @@ build_and_push_image() {
     local registry="$3"
 
     echo "Docker 이미지를 빌드합니다: ${registry}/${image_name}:${tag}"
-    docker build -t "${image_name}:${tag}" ../server
+    docker build -t "${registry}/${image_name}:${tag}" ../server
 
     echo "Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag}"
-    docker tag "${image_name}:${tag}" "${registry}/${image_name}:${tag}"
     docker push "${registry}/${image_name}:${tag}"
 }
 

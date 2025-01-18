@@ -1,20 +1,12 @@
 #!/bin/bash
 
-# 환경에 따른 docker-compose 파일 설정
+# Swarm Compose 파일 설정 함수
 set_compose_file() {
     local env="$1"
 
-    COMPOSE_FILE=()
-
     case "$env" in
-        dev)
-            COMPOSE_FILE=("./docker-compose/syslog-linux.yaml")
-            ;;
-        stg)
-            COMPOSE_FILE=("./docker-compose/syslog-linux.yaml")
-            ;;
-        prd)
-            COMPOSE_FILE=("./docker-compose/syslog-linux.yaml")
+        dev | stg | prd)
+            COMPOSE_FILE="./docker-compose/syslog-linux.yaml"
             ;;
         *)
             echo "지원하지 않는 환경입니다: $env"
@@ -22,7 +14,8 @@ set_compose_file() {
             exit 1
             ;;
     esac
-    echo "$env 환경을 사용하여 ${COMPOSE_FILE[*]} 파일을 설정합니다."
+
+    echo "$env 환경을 사용하여 $COMPOSE_FILE 파일을 설정합니다."
 }
 
 # Docker 이미지 빌드 및 푸시 함수
@@ -32,23 +25,14 @@ build_and_push_image() {
     local registry="$3"
 
     echo "Docker 이미지를 빌드합니다: ${registry}/${image_name}:${tag}"
-    docker build -t "${image_name}:${tag}" ../server
+    docker build -t "${registry}/${image_name}:${tag}" ../server
 
     echo "Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag}"
-    docker tag "${image_name}:${tag}" "${registry}/${image_name}:${tag}"
     docker push "${registry}/${image_name}:${tag}"
 }
 
-# Docker Swarm 스택 배포 함수
-deploy_stack() {
-    local stack_name="$1"
-    echo "Docker Swarm 스택을 배포합니다..."
-    docker stack deploy -c ./docker-compose/base.yaml $(printf -- '-c %s ' "${COMPOSE_FILE[@]}") "$stack_name"
-    echo "Docker Swarm 스택 배포가 완료되었습니다."
-}
-
 # Swarm 서비스 상태 확인 및 배포 시간 출력 함수
-print_service_deploy_times() {
+print_service_status() {
     local stack_name="$1"
     echo ""
     echo "================================="
@@ -65,7 +49,7 @@ print_service_deploy_times() {
         updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}')
         if [[ -n "$updated_at" ]]; then
             # UTC 시간을 KST로 변환
-            deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S" --utc --date '+9 hours')
+            deploy_time=$(TZ='Asia/Seoul' date -d "$updated_at" +"%Y-%m-%d %H:%M:%S")
         else
             deploy_time="Unknown"
         fi
@@ -76,37 +60,23 @@ print_service_deploy_times() {
         echo " - 최근 배포 시간: $deploy_time"
         echo ""
     done
-
     echo "================================="
-    echo ""
 }
 
-# Swarm 서비스 상태 확인 및 배포 스킵 함수
-check_and_skip() {
+# Swarm 서비스 상태 확인 및 필요 시 업데이트 함수
+update_service_if_needed() {
     local service_name="$1"
-    local stack_service_name="${STACK_NAME}_$2"  # STACK_NAME과 서비스 이름을 결합
+    local stack_service_name="${STACK_NAME}_$2"
 
     echo "$service_name 상태를 확인 중..."
 
     # Swarm 서비스 상태 확인
-    local replicas=$(docker service ls --filter "name=${stack_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
+    replicas=$(docker service ls --filter "name=${stack_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
     if [[ "$replicas" -ge 1 ]]; then
-        echo "$service_name가 이미 실행 중입니다. 배포를 건너뜁니다."
-        return 0
+        echo "$service_name가 이미 실행 중입니다. 업데이트를 건너뜁니다."
     else
-        echo "$service_name가 실행 중이지 않습니다. 배포를 진행합니다."
-        return 1
-    fi
-}
-
-# MongoDB와 Redis 상태 확인 및 배포
-deploy_if_needed() {
-    local service_name="$1"
-    local stack_service_name="$2"
-
-    if ! check_and_skip "$service_name" "$stack_service_name"; then
-        echo "$service_name 배포 중..."
-        docker service update --force "${STACK_NAME}_$stack_service_name"
+        echo "$service_name를 업데이트합니다."
+        docker service update --force "$stack_service_name"
     fi
 }
 
@@ -138,8 +108,7 @@ fi
 # 이미지 이름 및 레지스트리 설정
 IMAGE_NAME="project"
 IMAGE_TAG="latest"
-REGISTRY="soomumu" # Docker Hub 사용자명 입력
-
+REGISTRY="soomumu"  # Docker Hub 사용자명 입력
 
 # 이미지 빌드 및 푸시
 build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"
@@ -147,15 +116,16 @@ build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"
 # Compose 파일 설정
 set_compose_file "$ENV"
 
-# MongoDB와 Redis 배포 확인 및 처리
-deploy_if_needed "MongoDB" "mongodb"
-deploy_if_needed "Redis" "redis"
+# MongoDB와 Redis 서비스 업데이트 확인 및 처리
+update_service_if_needed "MongoDB" "mongodb"
+update_service_if_needed "Redis" "redis"
 
 # 스크립트 옵션 처리
 if [ "$DEPLOY" = true ]; then
-    deploy_stack "$STACK_NAME"
-    print_service_deploy_times "$STACK_NAME"
+    echo "Docker Swarm 스택을 배포합니다..."
+    docker stack deploy -c "$COMPOSE_FILE" "$STACK_NAME"
+    print_service_status "$STACK_NAME"
 else
     echo "배포 없이 Swarm 상태를 확인합니다."
-    print_service_deploy_times "$STACK_NAME"
+    print_service_status "$STACK_NAME"
 fi

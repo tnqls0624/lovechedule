@@ -85,17 +85,18 @@ print_service_deploy_times() {
 # Swarm 서비스 상태 확인 및 배포 스킵 함수
 check_and_skip() {
     local service_name="$1"
-    local stack_service_name="$2"
+    local full_service_name="${STACK_NAME}_${service_name}"
 
     echo "$service_name 상태를 확인 중..."
 
     # Swarm 서비스 상태 확인
-    local replicas=$(docker service ls --filter "name=${stack_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
-    if [[ "$replicas" -ge 1 ]]; then
+    local replicas=$(docker service ls --filter "name=${full_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $1}')
+    local total_replicas=$(docker service ls --filter "name=${full_service_name}" --format "{{.Replicas}}" | awk -F '/' '{print $2}')
+    if [[ "$replicas" -eq "$total_replicas" && -n "$replicas" ]]; then
         echo "$service_name가 이미 실행 중입니다. 배포를 건너뜁니다."
         return 0
     else
-        echo "$service_name가 실행 중이지 않습니다. 배포를 진행합니다."
+        echo "$service_name가 실행 중이지 않거나 일부 컨테이너가 비정상 상태입니다. 배포를 진행합니다."
         return 1
     fi
 }

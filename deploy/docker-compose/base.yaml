@@ -72,7 +72,7 @@ services:
       labels:
         - "traefik.enable=true" # Traefik 활성화
         - "traefik.http.routers.lovechedule.rule=Host(`lovechedule.com`)" # 호스트 이름 설정
-        - "traefik.http.routers.lovechedule.entrypoints=web" # HTTP 엔트리포인트
+        - "traefik.http.routers.api.rule=PathPrefix(`/app`)"
         - "traefik.http.services.lovechedule.loadbalancer.server.port=3000" # 내부 서비스 포트
     networks:
       - lovechedule-network

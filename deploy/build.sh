@@ -54,11 +54,33 @@ check_services() {
     echo "================================="
     echo "Docker Swarm 서비스 상태 확인: $stack_name"
     echo "================================="
-    docker stack services "$stack_name"
-    echo ""
-    echo "Docker Swarm 서비스 상태 확인 완료"
+
+    docker stack services "$stack_name" | tail -n +2 | while read -r line; do
+        service_id=$(echo "$line" | awk '{print $1}')
+        service_name=$(echo "$line" | awk '{print $2}')
+        replicas=$(echo "$line" | awk '{print $4}')
+        image=$(echo "$line" | awk '{print $5}')
+
+        # 배포 시간 확인
+        updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}')
+        if [[ -n "$updated_at" ]]; then
+            # UTC 시간을 KST로 변환
+            deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S" --utc --date '+9 hours')
+        else
+            deploy_time="Unknown"
+        fi
+
+        echo "서비스: $service_name"
+        echo " - 이미지: $image"
+        echo " - 상태: $replicas"
+        echo " - 최근 배포 시간: $deploy_time"
+        echo ""
+    done
+
+    echo "================================="
     echo ""
 }
+
 
 # 환경 변수 체크 및 설정
 if [ -z "$1" ] || [ -z "$2" ]; then

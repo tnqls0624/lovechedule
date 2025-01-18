@@ -74,8 +74,6 @@ services:
         - "traefik.enable=true"
         - "traefik.http.routers.lovechedule.rule=Host(`lovechedule.com`) && PathPrefix(`/app`)"
         - "traefik.http.routers.lovechedule.entrypoints=web"
-        - "traefik.http.routers.lovechedule.middlewares=strip-app-prefix"
-        - "traefik.http.middlewares.strip-app-prefix.stripprefix.prefixes=/app"
         # 내부 서비스 포트 지정
         - "traefik.http.services.lovechedule-service.loadbalancer.server.port=3000" # 내부 서비스 포트
     networks:

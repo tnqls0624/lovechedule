@@ -31,7 +31,7 @@ build_and_push_image() {
     local tag="$2"
     local registry="$3"
 
-    echo "Docker 이미지를 빌드합니다: ${image_name}:${tag}"
+    echo "Docker 이미지를 빌드합니다: ${registry}/${image_name}:${tag}"
     docker build -t "${image_name}:${tag}" ./server
 
     echo "Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag}"
@@ -88,7 +88,7 @@ fi
 # 이미지 이름 및 레지스트리 설정
 IMAGE_NAME="project"
 IMAGE_TAG="latest"
-REGISTRY="soomumu" # Docker Hub 사용자명 또는 AWS ECR 주소 입력
+REGISTRY="soomumu" # Docker Hub 사용자명 입력
 
 # 이미지 빌드 및 푸시
 build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"

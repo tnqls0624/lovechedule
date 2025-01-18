@@ -66,7 +66,7 @@ print_service_status() {
 # Swarm 서비스 상태 확인 및 필요 시 업데이트 함수
 update_service_if_needed() {
     local service_name="$1"
-    local stack_service_name="$2"
+    local stack_service_name="$STACK_NAME""$2"
     local image="$3"
 
     echo "$service_name 상태를 확인 중..."
@@ -90,7 +90,6 @@ fi
 
 STACK_NAME="$1"  # 첫 번째 인수는 스택 이름
 ENV="$2"         # 두 번째 인수는 환경 이름
-shift 2          # 첫 두 개의 인수 제거
 
 # '--deploy' 여부 확인
 DEPLOY=false

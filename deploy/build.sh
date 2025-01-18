@@ -47,7 +47,24 @@ deploy_stack() {
     echo "Docker Swarm 스택 배포가 완료되었습니다."
 }
 
-# 컨테이너 상태 확인 함수 (Swarm 환경)
+# 컨테이너 상태 확인 함수
+check_and_skip() {
+    local service_name="$1"
+    local image="$2"
+
+    echo "$service_name 상태를 확인 중..."
+
+    # 실행 중인 컨테이너 확인
+    if docker ps --filter "ancestor=$image" --format "{{.ID}}" | grep -q .; then
+        echo "$service_name가 이미 실행 중입니다. 배포를 건너뜁니다."
+        return 0
+    else
+        echo "$service_name가 실행 중이지 않습니다. 배포를 진행합니다."
+        return 1
+    fi
+}
+
+# Swarm 서비스 확인 함수
 check_services() {
     local stack_name="$1"
     echo ""
@@ -89,6 +106,17 @@ fi
 IMAGE_NAME="project"
 IMAGE_TAG="latest"
 REGISTRY="soomumu" # Docker Hub 사용자명 입력
+
+# MongoDB와 Redis 배포 조건 확인
+if ! check_and_skip "MongoDB" "mongo:latest"; then
+    echo "MongoDB 배포 중..."
+    docker service update --force "${STACK_NAME}_mongodb"
+fi
+
+if ! check_and_skip "Redis" "redis:latest"; then
+    echo "Redis 배포 중..."
+    docker service update --force "${STACK_NAME}_redis"
+fi
 
 # 이미지 빌드 및 푸시
 build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"

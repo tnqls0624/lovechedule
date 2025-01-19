@@ -26,17 +26,17 @@ set_compose_file() {
 }
 
 # Docker 이미지 빌드 및 푸시 함수
-#build_and_push_image() {
-#    local image_name="$1"
-#    local tag="$2"
-#    local registry="$3"
-#
-#    echo "Docker 이미지를 빌드합니다: ${registry}/${image_name}:${tag}"
-#    docker build -t "${registry}/${image_name}:${tag}" ../server
-#
-#    echo "Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag}"
-#    docker push "${registry}/${image_name}:${tag}"
-#}
+build_and_push_image() {
+    local image_name="$1"
+    local tag="$2"
+    local registry="$3"
+
+    echo "Docker 이미지를 빌드합니다: ${registry}/${image_name}:${tag}"
+    docker build -no-cache -t "${registry}/${image_name}:${tag}" ../server
+
+    echo "Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag}"
+    docker push "${registry}/${image_name}:${tag}"
+}
 
 # Docker Swarm 스택 배포 함수
 deploy_stack() {
@@ -112,7 +112,7 @@ IMAGE_TAG="latest"
 REGISTRY="soomumu" # Docker Hub 사용자명 입력
 
 # 이미지 빌드 및 푸시
-#build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"
+build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY"
 
 # Compose 파일 설정
 set_compose_file "$ENV"

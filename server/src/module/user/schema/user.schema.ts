@@ -16,10 +16,7 @@ export class User {
 
   @Expose()
   @Prop({ required: true, type: String, unique: true })
-  user_id: string;
-
-  @Prop({ required: true, type: String })
-  password: string;
+  email: string;
 
   @Expose()
   @Prop({ required: true, type: String })
@@ -32,6 +29,32 @@ export class User {
     default: LoginType.BASIC
   })
   login_type: string;
+
+  @Expose()
+  @Prop({
+    type: String,
+  })
+  emoji: string
+
+  @Expose()
+  @Prop({
+    type: String,
+  })
+  gender: string
+
+  @Expose()
+  @Prop({
+    type: String,
+  })
+  birthday: string
+
+  @Expose()
+  @Prop({ type: String, required: true, index: true })
+  invite_code: string;
+
+  @Expose()
+  @Prop({ type: String, required: false, index: true })
+  fcm_token: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

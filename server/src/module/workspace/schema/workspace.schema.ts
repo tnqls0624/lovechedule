@@ -2,24 +2,8 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Expose, Transform, Type } from 'class-transformer';
 import { Document, Types } from 'mongoose';
 import { User } from '../../user/schema/user.schema';
-import { Schedule } from '../../schedule/schema/schedule.schema';
 
 export type WorkspaceDocument = Workspace & Document<Types.ObjectId>;
-
-export enum WorkspaceStatus {
-  PENDING = 'PENDING',
-  ACTIVE = 'ACTIVE'
-}
-export class Aniversary {
-  @Expose()
-  title: string;
-
-  @Expose()
-  description: string;
-
-  @Expose()
-  date: string;
-}
 
 export class Tag {
   @Expose()
@@ -45,10 +29,6 @@ export class Workspace {
   _id: Types.ObjectId;
 
   @Expose()
-  @Prop({ type: String, required: true })
-  title: string;
-
-  @Expose()
   @Type(() => User)
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   master: Types.ObjectId;
@@ -61,30 +41,26 @@ export class Workspace {
   })
   users: string[];
 
-  @Expose()
-  @Type(() => Tag)
-  @Prop({
-    type: [
-      {
-        color: { type: String, required: true },
-        name: { type: String, required: true }
-      }
-    ],
-    default: []
-  })
-  tags: Tag[];
+  // @Expose()
+  // @Type(() => Tag)
+  // @Prop({
+  //   type: [
+  //     {
+  //       color: { type: String, required: true },
+  //       name: { type: String, required: true }
+  //     }
+  //   ],
+  //   default: []
+  // })
+  // tags: Tag[];
 
-  @Expose()
-  @Prop({
-    type: String,
-    enum: WorkspaceStatus,
-    default: WorkspaceStatus.PENDING
-  })
-  status: WorkspaceStatus;
-
-  @Expose()
-  @Prop({ type: String, required: true, index: true })
-  invite_code: string;
+  // @Expose()
+  // @Prop({
+  //   type: String,
+  //   enum: WorkspaceStatus,
+  //   default: WorkspaceStatus.PENDING
+  // })
+  // status: WorkspaceStatus;
 
   @Expose()
   @Prop({ type: String, required: true })
@@ -92,23 +68,19 @@ export class Workspace {
 
   @Expose()
   @Prop({
-    type: [
-      {
-        title: { type: String, required: true },
-        description: { type: String, required: false },
-        date: { type: String, required: true }
-      }
-    ],
-    default: []
+    type: Object,
+    default: {
+      anniversary: '🎉',
+      together: '👩‍❤️‍👨'
+    }
   })
-  anniversary: Aniversary[];
+  emoji: any
+
+  @Expose()
+  @Prop({
+    type: String,
+  })
+  thumbnail_image: string
 }
 
 export const WorkspaceSchema = SchemaFactory.createForClass(Workspace);
-// WorkspaceSchema.virtual('workspace', {
-//   ref: 'Schedule',
-//   localField: '_id',
-//   foreignField: 'workspace'
-// });
-// WorkspaceSchema.set('toObject', { virtuals: true });
-// WorkspaceSchema.set('toJSON', { virtuals: true });

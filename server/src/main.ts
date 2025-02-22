@@ -14,9 +14,9 @@ async function bootstrap() {
 
   const redis_io_adapter = await connectRedis(app);
   const logger = new Logger(bootstrap.name);
-  setupSwagger(app);
   const api_prefix = '/app';
   app.setGlobalPrefix(api_prefix);
+  setupSwagger(app);
   app.useWebSocketAdapter(redis_io_adapter);
   app.useGlobalInterceptors(new SuccessInterceptor());
   app.enableCors({
@@ -49,6 +49,7 @@ function setupSwagger(app: INestApplication): void {
       description: 'Enter JWT token',
       in: 'header'
     })
+    .addGlobalParameters()
     .build();
 
   const document = SwaggerModule.createDocument(app, documentBuilder);

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards
 } from '@nestjs/common';
 import { AlbumService } from '../service/album.service';
@@ -13,6 +14,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags
 } from '@nestjs/swagger';
 import { ResponseDto } from '../../../common/dto/response.dto';
@@ -36,14 +38,14 @@ export class AlbumController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Serialize(AlbumDto)
-  @ApiParam({
+  @ApiQuery({
     type: 'string',
     name: '_id',
     description: '워크스페이스 아이디',
     required: true
   })
-  @Get('workspace/:_id')
-  findAll(@Param('_id') _id: string) {
+  @Get('/')
+  findAll(@Query('_id') _id: string) {
     return this.albumService.findAll(_id);
   }
 
@@ -55,16 +57,16 @@ export class AlbumController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Serialize(AlbumDto)
-  @ApiParam({
+  @ApiQuery({
     type: 'string',
     name: '_id',
     description: '워크스페이스 아이디',
     required: true
   })
-  @Post('/workspace/:_id')
+  @Post('/')
   insert(
     @User() user: UserDto,
-    @Param('_id') _id: string,
+    @Query('_id') _id: string,
     @Body() body: CreateAlbumRequestDto
   ) {
     return this.albumService.insert(user, _id, body);

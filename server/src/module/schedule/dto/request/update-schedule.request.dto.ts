@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsString } from 'class-validator';
 import { Optional } from '@nestjs/common';
+import { RepeatType } from './create-schedule.request.dto';
 
 export class UpdateScheduleRequestDto {
   @ApiProperty({
@@ -20,16 +21,43 @@ export class UpdateScheduleRequestDto {
   })
   @IsString()
   @Optional()
-  readonly description: string;
+  readonly memo: string;
 
   @ApiProperty({
     type: String,
-    example: '2024-06-10 13:00:00',
+    example: '2025-01-10 13:00:00',
     description: '날짜'
   })
   @IsString()
   @Optional()
-  readonly date: string;
+  readonly start_date: string;
+
+  @ApiProperty({
+    type: String,
+    example: '2025-01-11 13:00:00',
+    description: '날짜'
+  })
+  @IsString()
+  @Optional()
+  readonly end_date: string;
+
+  @ApiProperty({
+    type: String,
+    example: '2025-01-11 13:00:00',
+    description: '날짜'
+  })
+  @IsString()
+  @Optional()
+  readonly alarm_date: string;
+
+  @ApiProperty({
+    type: String,
+    example: RepeatType.MONTHLY,
+    description: '종료 날짜'
+  })
+  @IsEnum(RepeatType)
+  @Optional()
+  readonly repeat_type: RepeatType;
 
   @ApiProperty({
     type: [],
@@ -39,4 +67,13 @@ export class UpdateScheduleRequestDto {
   @IsArray()
   @Optional()
   readonly participants: string[];
+
+  @ApiProperty({
+    type: Boolean,
+    example: false,
+    description: '기념일 여부'
+  })
+  @IsBoolean()
+  @Optional()
+  readonly is_anniversary: boolean;
 }

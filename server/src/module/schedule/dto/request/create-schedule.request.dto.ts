@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 class TagDto {
   @IsString()
@@ -10,6 +9,12 @@ class TagDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+}
+
+export enum RepeatType {
+  NONE = 'none',
+  MONTHLY = "monthly",
+  YEARLY = "yearly",
 }
 
 export class CreateScheduleRequestDto {
@@ -29,16 +34,40 @@ export class CreateScheduleRequestDto {
     description: '설명'
   })
   @IsString()
-  readonly description: string;
+  readonly memo: string;
 
   @ApiProperty({
     type: String,
-    example: '2024-06-10 13:00:00',
-    description: '날짜'
+    example: '2025-01-10 13:00:00',
+    description: '시작 날짜'
   })
   @IsString()
   @IsNotEmpty()
-  readonly date: string;
+  readonly start_date: string;
+
+  @ApiProperty({
+    type: String,
+    example: '2025-01-11 13:00:00',
+    description: '종료 날짜'
+  })
+  @IsString()
+  readonly end_date: string;
+
+  @ApiProperty({
+    type: String,
+    example: '2025-01-11 13:00:00',
+    description: '종료 날짜'
+  })
+  @IsEnum(RepeatType)
+  readonly repeat_type: RepeatType;
+
+  // @ApiProperty({
+  //   type: String,
+  //   example: '2025-01-11 13:00:00',
+  //   description: '알람 날짜'
+  // })
+  // @IsString()
+  // readonly alarm_date: string;
 
   @ApiProperty({
     type: [],
@@ -49,19 +78,28 @@ export class CreateScheduleRequestDto {
   @IsNotEmpty()
   readonly participants: string[];
 
+  // @ApiProperty({
+  //   type: Array,
+  //   example: [
+  //     {
+  //       color: 'red',
+  //       name: '가족'
+  //     },
+  //     {
+  //       color: 'blue',
+  //       name: '유진쨩'
+  //     }
+  //   ],
+  //   description: '태그'
+  // })
+  // readonly tags: TagDto[];
+
   @ApiProperty({
-    type: Array,
-    example: [
-      {
-        color: 'red',
-        name: '가족'
-      },
-      {
-        color: 'blue',
-        name: '유진쨩'
-      }
-    ],
-    description: '태그'
+    type: Boolean,
+    example: false,
+    description: '기념일 여부'
   })
-  readonly tags: TagDto[];
+  @IsBoolean()
+  @IsNotEmpty()
+  readonly is_anniversary: boolean;
 }

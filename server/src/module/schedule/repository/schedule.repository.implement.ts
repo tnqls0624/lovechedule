@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { ScheduleRepository } from '../interface/schedule.repository';
+import { CountType, ScheduleRepository } from '../interface/schedule.repository';
 import { Schedule } from '../schema/schedule.schema';
 import dayjs from 'dayjs';
 import { CreateScheduleRequestDto } from '../dto/request/create-schedule.request.dto';
 import { User } from '../../user/schema/user.schema';
-import { UpdateScheduleStatusRequestDto } from '../dto/request/update-schedule-status.request.dto';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -26,31 +26,13 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
   ) {}
 
   async findByWorkspaceId(
-    _id: string,
+    _id: Types.ObjectId,
     year: string,
-    month: string,
-    week: string,
-    day: string
+    month: string
   ): Promise<Schedule[]> {
     let start_date: string, end_date: string;
 
-    if (year && month && day) {
-      start_date = dayjs(`${year}-${month}-${day}`)
-        .tz()
-        .format('YYYY-MM-DD 00:00:00');
-      end_date = dayjs(`${year}-${month}-${day}`)
-        .tz()
-        .add(1, 'day')
-        .format('YYYY-MM-DD 00:00:00');
-    } else if (year && month && week) {
-      const start_of_week = dayjs(`${year}-${month}-01`)
-        .tz()
-        .add(Number(week) - 1, 'week')
-        .startOf('week');
-      const end_of_Week = start_of_week.tz().endOf('week');
-      start_date = start_of_week.tz().format('YYYY-MM-DD 00:00:00');
-      end_date = end_of_Week.tz().format('YYYY-MM-DD 23:59:59');
-    } else if (year && month) {
+    if (year && month) {
       start_date = dayjs(`${year}-${month}-01`)
         .tz()
         .startOf('month')
@@ -70,73 +52,120 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
         .format('YYYY-MM-DD 23:59:59');
     }
 
+    // 1. 일반 일정 및 반복 일정 가져오기
     const schedules = await this.schedule_model
       .find({
-        date: {
-          $gte: start_date,
-          $lt: end_date
-        }
+        $or: [
+          {
+            start_date: { $gte: start_date, $lt: end_date }
+          }, // 일반 일정
+          {
+            repeat_type: 'monthly'
+          }, // 매월 반복 일정
+          {
+            repeat_type: 'yearly'
+          } // 매년 반복 일정
+        ]
       })
       .populate({
         path: 'participants',
-        model: this.user_model
+        model: this.user_model,
       })
       .exec();
-    return schedules;
+
+    const updatedSchedules = schedules.map((schedule) => {
+      const originalStartDate = dayjs(schedule.start_date);
+      const originalEndDate = dayjs(schedule.end_date);
+
+      // 매월 반복 일정 처리 (현재 월로 날짜 변경)
+      if (schedule.repeat_type === 'monthly') {
+        return {
+          ...schedule.toObject(),
+          start_date: dayjs(`${year}-${month}-${originalStartDate.date()}`)
+            .tz()
+            .format('YYYY-MM-DD HH:mm:ss'),
+          end_date: dayjs(`${year}-${month}-${originalEndDate.date()}`)
+            .tz()
+            .format('YYYY-MM-DD HH:mm:ss'),
+        };
+      }
+
+      // 매년 반복 일정 처리 (현재 연도로 날짜 변경)
+      if (schedule.repeat_type === 'yearly') {
+        return {
+          ...schedule.toObject(),
+          start_date: dayjs(`${year}-${originalStartDate.month() + 1}-${originalStartDate.date()}`)
+            .tz()
+            .format('YYYY-MM-DD HH:mm:ss'),
+          end_date: dayjs(`${year}-${originalEndDate.month() + 1}-${originalEndDate.date()}`)
+            .tz()
+            .format('YYYY-MM-DD HH:mm:ss'),
+        };
+      }
+
+      // 일반 일정은 그대로 반환
+      return schedule.toObject();
+    });
+
+    return updatedSchedules;
   }
 
-  async insert(_id: string, body: CreateScheduleRequestDto): Promise<Schedule> {
+  async findById(_id: Types.ObjectId): Promise<Schedule> {
+    return this.schedule_model.findById({ _id });
+  }
+
+  async count(workspace_id: Types.ObjectId, master_id: Types.ObjectId, guest_id: Types.ObjectId, countType: CountType): Promise<number> {
+    let query: any = {
+      workspace: workspace_id,
+    };
+
+    switch (countType) {
+      case CountType.MASTER: {
+        query.participants = { $eq: [master_id] };
+        break;
+      }
+      case CountType.GUEST: {
+        query.participants = { $eq: [guest_id] };
+        break;
+      }
+      case CountType.TOGETHER: {
+        query.participants = { $all: [master_id, guest_id], $size: 2 };
+        break;
+      }
+      case CountType.ANNIVERSARY: {
+        query.is_anniversary = true;
+        query.participants = { $all: [master_id, guest_id], $size: 2 };
+      }
+    }
+    return this.schedule_model.countDocuments(query).exec();
+  }
+
+
+  async insert(_id: Types.ObjectId, body: CreateScheduleRequestDto): Promise<Schedule> {
     const { participants } = body;
     const object_ids = participants.map((user) => new Types.ObjectId(user));
 
     const schedule = new this.schedule_model({
       title: body.title,
-      description: body.description,
-      date: body.date,
+      memo: body.memo,
+      start_date: body.start_date,
+      end_date: body.end_date,
+      // alram: body.alarm,
       participants: object_ids,
-      workspace: new Types.ObjectId(_id),
-      tags: body.tags
+      workspace: _id,
+      is_anniversary: body.is_anniversary
     });
 
     return schedule.save();
   }
 
-  async update(_id: string, body: Schedule): Promise<Schedule> {
+  async update(_id: Types.ObjectId, body: UpdateScheduleRequestDto): Promise<Schedule> {
     return this.schedule_model
-      .findByIdAndUpdate(
-        {
-          _id: new Types.ObjectId(_id)
-        },
-        body,
-        {
-          new: true
-        }
-      )
+      .findByIdAndUpdate({ _id }, body, { new: true })
       .exec();
   }
 
-  async updateScheduleIsDone(
-    _id: string,
-    body: UpdateScheduleStatusRequestDto
-  ): Promise<Schedule> {
-    return this.schedule_model
-      .findByIdAndUpdate(
-        {
-          _id: new Types.ObjectId(_id)
-        },
-        {
-          $set: body
-        },
-        {
-          new: true
-        }
-      )
-      .exec();
-  }
-
-  async delete(_id: string): Promise<Schedule> {
-    return this.schedule_model.findByIdAndDelete({
-      _id: new Types.ObjectId(_id)
-    });
+  async delete(_id: Types.ObjectId): Promise<Schedule> {
+    return this.schedule_model.findByIdAndDelete({_id});
   }
 }

@@ -15,6 +15,9 @@ export class CreateWorkspaceResponseDto {
   readonly love_day: string;
 
   @Expose()
+  readonly emoji: any;
+
+  @Expose()
   readonly createAt: Date;
 
   @Expose()

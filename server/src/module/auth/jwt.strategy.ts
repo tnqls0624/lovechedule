@@ -7,8 +7,11 @@ import { Workspace } from '../workspace/schema/workspace.schema';
 
 export type Payload = {
   _id: string;
-  user_id: string;
+  email: string;
   name: string;
+  gender: string;
+  birthday: string;
+  invite_code: string;
   login_type: string;
   workspaces: Workspace;
 };
@@ -35,8 +38,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user_data: Payload = {
       _id: String(user._id),
-      user_id: user.user_id,
+      email: user.email,
       name: user.name,
+      gender: user.gender,
+      birthday: user.birthday,
+      invite_code: user.invite_code,
       login_type: user.login_type,
       workspaces: user.workspaces
     };

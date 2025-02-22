@@ -18,8 +18,8 @@ export class Photo {
   url: string;
 
   @Expose()
-  @Prop({ type: String })
-  description: string;
+  @Prop({ type: String, required: true, unique: true })
+  hash: string;
 }
 
 export const PhotoSchema = SchemaFactory.createForClass(Photo);

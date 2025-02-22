@@ -10,6 +10,7 @@ import {
   WorkspaceSchema
 } from '../workspace/schema/workspace.schema';
 import { CacheModule as CacheStoreModule } from '../../lib/cache.module';
+import { WorkspaceModule } from '../workspace/workspace.module';
 
 const infrastructure: Provider[] = [
   {
@@ -32,6 +33,7 @@ const controller = [ScheduleController];
       ],
       'lovechedule'
     ),
+    WorkspaceModule,
     CacheStoreModule
   ],
   controllers: [...controller],

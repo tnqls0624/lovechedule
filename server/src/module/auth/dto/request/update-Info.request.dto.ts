@@ -8,4 +8,13 @@ export class UpdateInfoRequestDto {
   })
   @IsString()
   readonly name: string;
+
+  @ApiProperty({
+    example: 'dsnajkdsad:fdsfdsfkdsbasb',
+    description: 'fcm token'
+  })
+
+
+  @IsString()
+  readonly fcm_token: string;
 }

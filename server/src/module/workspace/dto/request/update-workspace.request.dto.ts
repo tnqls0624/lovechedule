@@ -1,20 +1,24 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsObject, IsString } from 'class-validator';
+import { IsObject, IsOptional, IsString } from 'class-validator';
 
-export class CreateWorkspaceRequestDto {
-  @ApiProperty({
-    example: 'ASD213',
-    description: '초대코드'
-  })
-  @IsString()
-  readonly invite_code: string;
-
+export class UpdateWorkspaceRequestDto {
   @ApiProperty({
     example: '2024-01-01',
     description: '사귀기 시작한 날짜'
   })
   @IsString()
+  @IsOptional()
   readonly love_day: string;
+
+  @ApiProperty({
+    example: [{
+      _id: 'asdsda',
+      name: '숩'
+    }],
+    description: '유저 이름 및 아이디'
+  })
+  @IsOptional()
+  readonly users: any[];
 
   @ApiProperty({
     example: {
@@ -24,6 +28,7 @@ export class CreateWorkspaceRequestDto {
     description: '이모지'
   })
   @IsObject()
+  @IsOptional()
   readonly emoji: object;
 
   @ApiProperty({
@@ -31,5 +36,6 @@ export class CreateWorkspaceRequestDto {
     description: '썸네일 이미지'
   })
   @IsString()
+  @IsOptional()
   readonly thumbnail_image: string;
 }

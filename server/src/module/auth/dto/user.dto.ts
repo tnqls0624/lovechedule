@@ -11,6 +11,21 @@ export class UserDto {
   readonly name: string;
 
   @Expose()
+  readonly birthday: string;
+
+  @Expose()
+  readonly gender: string;
+
+  @Expose()
+  readonly invite_code: string;
+
+  @Expose()
+  readonly fcm_token: string;
+
+  @Expose()
+  readonly thumbnail_image: string;
+
+  @Expose()
   readonly login_type: LoginType;
 
   @Expose()

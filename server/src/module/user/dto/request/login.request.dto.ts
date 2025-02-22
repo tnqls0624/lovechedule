@@ -1,19 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { LoginType } from 'src/common/type/user';
 
 export class LoginRequestDto {
   @ApiProperty({
-    example: 'dktnqls0624',
-    description: '유저 아이디'
+    example: 'dnsajkdnfkanjklds',
+    description: '액세스 토큰'
   })
-  @MaxLength(30)
-  @MinLength(3)
-  readonly user_id: string;
-
-  @ApiProperty({ example: 'asdf1234!', description: '유저 비밀번호' })
-  @MaxLength(20)
-  @MinLength(4)
   @IsString()
-  @Matches(/^[a-zA-Z\d!@#$%^&*()_+=[\]{};':"\\|,.<>/?]*$/)
-  readonly password: string;
+  readonly access_token: string;
+
+  @ApiProperty({
+    enum: LoginType,
+    example: LoginType.KAKAO,
+    description: '소셜 로그인 타입'
+  })
+  @IsString()
+  readonly login_type: string;
 }

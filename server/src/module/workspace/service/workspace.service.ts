@@ -8,16 +8,11 @@ import {
 import { CreateWorkspaceRequestDto } from '../dto/request/create-workspace.request.dto';
 import { WorkspaceRepository } from '../interface/workspace.repository';
 import { UserDto } from '../../auth/dto/user.dto';
-import { JoinWorkspaceRequestDto } from '../dto/request/join-workspace.request.dto';
-import { customAlphabet } from 'nanoid';
-import { Aniversary, Workspace } from '../schema/workspace.schema';
+import { Workspace } from '../schema/workspace.schema';
 import { UserRepository } from '../../user/interface/user.repository';
 import { Types } from 'mongoose';
-import { CreateTagRequestDto } from '../dto/request/create-tag.request.dto';
-import dayjs from 'dayjs';
-import { CreateAnniversaryRequestDto } from '../dto/request/create-anniversary.request.dto';
-
-const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
+import { UpdateWorkspaceRequestDto } from '../dto/request/update-workspace.request.dto';
+import { UpdateUserNameRequestDto } from 'src/module/user/dto/request/update-user-name.request.dto';
 
 @Injectable()
 export class WorkspaceService {
@@ -29,24 +24,19 @@ export class WorkspaceService {
     private readonly userRepository: UserRepository
   ) {}
 
-  generateInviteCode(): string {
-    return nanoid();
-  }
-
   async create(user_dto: UserDto, body: CreateWorkspaceRequestDto) {
     try {
-      const invite_code = this.generateInviteCode();
+      const master_user = await this.userRepository.findByInviteCode(body.invite_code);
+      if (!master_user) {
+        throw new NotFoundException('초대코드를 찾을 수 없습니다');
+      }
+
       const workspace = await this.workspaceRepository.create(
-        user_dto,
-        invite_code,
+        new Types.ObjectId(String(user_dto._id)),
+        master_user._id,
         body
       );
 
-      await this.userRepository.join(
-        new Types.ObjectId(workspace._id.toString()),
-        new Types.ObjectId(user_dto._id)
-      );
-
       return workspace;
     } catch (e) {
       this.logger.error(e);
@@ -54,24 +44,15 @@ export class WorkspaceService {
     }
   }
 
-  async createTag(_id: string, body: CreateTagRequestDto) {
+  async update(_id: string, body: UpdateWorkspaceRequestDto) {
     try {
-      const workspace = await this.workspaceRepository.createTag(_id, body);
-      return workspace;
-    } catch (e) {
-      this.logger.error(e);
-      throw new HttpException(e, e.status);
-    }
-  }
-
-  async join(user_dto: UserDto, body: JoinWorkspaceRequestDto) {
-    try {
-      const workspace = await this.workspaceRepository.join(user_dto, body);
-      if (!workspace) throw new NotFoundException('no workspace');
-
-      await this.userRepository.join(
-        new Types.ObjectId(workspace._id.toString()),
-        new Types.ObjectId(user_dto._id)
+      const {users, ...rest} = body;
+      if(users.length){
+        await this.userRepository.updateUsersName(body.users as UpdateUserNameRequestDto[]);
+      }
+      const workspace = await this.workspaceRepository.update(
+        new Types.ObjectId(_id),
+        rest as UpdateWorkspaceRequestDto
       );
       return workspace;
     } catch (e) {
@@ -79,56 +60,38 @@ export class WorkspaceService {
       throw new HttpException(e, e.status);
     }
   }
+
+  // async createTag(_id: string, body: CreateTagRequestDto) {
+  //   try {
+  //     const workspace = await this.workspaceRepository.createTag(new Types.ObjectId(String(_id)), body);
+  //     return workspace;
+  //   } catch (e) {
+  //     this.logger.error(e);
+  //     throw new HttpException(e, e.status);
+  //   }
+  // }
+
+  // async join(user_dto: UserDto, body: JoinWorkspaceRequestDto) {
+  //   try {
+  //     const workspace = await this.workspaceRepository.join(new Types.ObjectId(String(user_dto._id)), body);
+  //     if (!workspace) throw new NotFoundException('no workspace');
+  //
+  //     await this.userRepository.join(
+  //       workspace._id,
+  //       new Types.ObjectId(String(user_dto._id))
+  //     );
+  //     return workspace;
+  //   } catch (e) {
+  //     this.logger.error(e);
+  //     throw new HttpException(e, e.status);
+  //   }
+  // }
 
   async findOneById(_id: string): Promise<Workspace> {
     try {
-      const workspace = await this.workspaceRepository.findOneById(_id);
+      const workspace = await this.workspaceRepository.findOneById(new Types.ObjectId(String(_id)));
       if (!workspace) throw new NotFoundException('no workspace');
       return workspace;
-    } catch (e) {
-      this.logger.error(e);
-      throw new HttpException(e, e.status);
-    }
-  }
-
-  async anniversaryCreate(
-    _id: string,
-    body: CreateAnniversaryRequestDto
-  ): Promise<Aniversary[]> {
-    try {
-      const workspace = await this.workspaceRepository.anniversaryCreate(
-        _id,
-        body
-      );
-      return workspace.anniversary;
-    } catch (e) {
-      this.logger.error(e);
-      throw new HttpException(e, e.status);
-    }
-  }
-
-  async findAnniversaryById(_id: string): Promise<Aniversary[]> {
-    try {
-      const workspace = await this.workspaceRepository.findAnniversaryById(_id);
-      if (!workspace) throw new NotFoundException('no workspace');
-      return workspace.anniversary;
-    } catch (e) {
-      this.logger.error(e);
-      throw new HttpException(e, e.status);
-    }
-  }
-
-  async deleteAnniversaryById(
-    _id: string,
-    title: string
-  ): Promise<Aniversary[]> {
-    try {
-      const workspace = await this.workspaceRepository.deleteAnniversaryById(
-        _id,
-        title
-      );
-      if (!workspace) throw new NotFoundException('no workspace');
-      return workspace.anniversary;
     } catch (e) {
       this.logger.error(e);
       throw new HttpException(e, e.status);

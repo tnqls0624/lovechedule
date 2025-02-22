@@ -1,8 +1,9 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags
 } from '@nestjs/swagger';
 import { UserService } from '../service/user.service';
@@ -27,6 +28,23 @@ export class UserController {
   @Get('/list')
   async findAll() {
     return this.userService.findAll();
+  }
+
+  @ApiOperation({ summary: 'Find All User List' })
+  @ApiOkResponse({
+    type: ResponseDto,
+    description: '성공'
+  })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiParam({
+    type: 'string',
+    name: 'code',
+    required: true,
+  })
+  @Get('/invite/:code')
+  async confirmInviteCode(@Param('code') code: string) {
+    return this.userService.confirmInviteCode(code);
   }
 
   //   @MessagePattern('notifications')

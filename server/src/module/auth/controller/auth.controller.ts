@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
 import {
   ApiBearerAuth,
@@ -14,8 +14,6 @@ import { LoginResponseDto } from '../dto/response/login.response.dto';
 import { Serialize } from '../../../interceptor/serialize.interceptor';
 import { ResponseDto } from '../../../common/dto/response.dto';
 import { LoginRequestDto } from '../../user/dto/request/login.request.dto';
-import { RegisterRequestDto } from '../dto/request/register.request.dto';
-import { RegisterResponseDto } from '../dto/response/register.response.dto';
 
 @ApiTags('AUTH')
 @Controller('auth')
@@ -33,16 +31,16 @@ export class AuthController {
     return this.authService.login(loginRequestDto);
   }
 
-  @ApiOkResponse({
-    type: ResponseDto,
-    description: '성공'
-  })
-  @ApiOperation({ summary: 'Register' })
-  @Serialize(RegisterResponseDto)
-  @Post('/register')
-  async register(@Body() registerRequestDto: RegisterRequestDto) {
-    return this.authService.register(registerRequestDto);
-  }
+  // @ApiOkResponse({
+  //   type: ResponseDto,
+  //   description: '성공'
+  // })
+  // @ApiOperation({ summary: 'Social Register' })
+  // @Serialize(RegisterResponseDto)
+  // @Post('/register')
+  // async register(@Body() registerRequestDto: RegisterRequestDto) {
+  //   return this.authService.register(registerRequestDto);
+  // }
 
   // @ApiOkResponse({
   //   type: ResponseDto,

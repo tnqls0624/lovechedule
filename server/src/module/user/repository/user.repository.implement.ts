@@ -5,6 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CreateUserRequestDto } from '../dto/request/create-user.request.dto';
 import { Workspace } from '../../workspace/schema/workspace.schema';
+import { UpdateUserNameRequestDto } from '../dto/request/update-user-name.request.dto';
 
 @Injectable()
 export class UserRepositoryImplement implements UserRepository {
@@ -14,46 +15,71 @@ export class UserRepositoryImplement implements UserRepository {
     private workspace_model: Model<Workspace>
   ) {}
 
+  confirmInviteCode(code: string): Promise<any> {
+    return this.user_model.findOne({
+        invite_code: code
+    }).exec();
+  }
+
   insert(body: CreateUserRequestDto): Promise<User> {
     const user = new this.user_model(body);
     return user.save();
   }
 
-  findAll(): Promise<User[]> {
-    return this.user_model.find().select('-password').exec();
+  async updateUsersName(body: UpdateUserNameRequestDto[]): Promise<boolean> {
+    await this.user_model.bulkWrite(
+      body.map(user => ({
+        updateOne: {
+          filter: { _id: user._id },
+          update: { name: user.name },
+        },
+      }))
+    );
+    return true
   }
 
-  findByUserId(user_id: string): Promise<User> {
+  findAll(): Promise<User[]> {
+    return this.user_model.find().exec();
+  }
+
+  findByEmail(email: string): Promise<User> {
     return this.user_model
       .findOne({
-        user_id
+        email
       })
       .exec();
   }
 
-  findById(_id: string): Promise<User> {
+  findById(_id: Types.ObjectId): Promise<User> {
     return (
       this.user_model
-        .findById({ _id: new Types.ObjectId(_id) })
+        .findById({ _id })
         // .populate({ path: 'workspace', model: 'Workspace' })
         .populate({
           path: 'workspaces',
           model: this.workspace_model,
-          match: { users: new Types.ObjectId(_id) },
+          match: { users: _id },
           populate: {
             path: 'users',
             model: this.user_model
           }
         })
-        .select('-password')
         .exec()
     );
   }
 
-  join(workspace_id: Types.ObjectId, user_id: Types.ObjectId): Promise<User> {
+  findByInviteCode(code: string): Promise<User> {
+    return (
+      this.user_model
+        .findOne({ invite_code: code })
+        .exec()
+    );
+  }
+
+  join(workspace_id: Types.ObjectId, _id: Types.ObjectId): Promise<User> {
     return this.user_model.findOneAndUpdate(
       {
-        _id: user_id
+        _id
       },
       {
         workspace: workspace_id,

@@ -1,5 +1,7 @@
+import { Photo } from "../schema/photo.schema";
+
 export interface PhotoRepository {
-  // insert(_id: string, body: CreateScheduleRequestDto): Promise<Photo>;
+  insert(body: { url:string, hash: string }): Promise<Photo>;
   // findAll(): Promise<User[]>;
   // findByAlbumId(
   //   _id: string,
@@ -10,5 +12,6 @@ export interface PhotoRepository {
   // update(_id: string, body: UpdateScheduleRequestDto): Promise<Photo>;
   // delete(_id: string): Promise<Photo>;
   // findByUserId(user_id: string): Promise<User>;
+  findHash(hash:string):Promise<Photo>;
   // join(workspace_id: Types.ObjectId, user_id: Types.ObjectId): Promise<User>;
 }

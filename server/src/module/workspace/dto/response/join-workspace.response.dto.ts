@@ -17,6 +17,9 @@ export class JoinWorkspaceResponseDto {
   readonly invite_code: string;
 
   @Expose()
+  readonly emoji: any;
+
+  @Expose()
   @Type(() => Tag)
   readonly tags: string[];
 

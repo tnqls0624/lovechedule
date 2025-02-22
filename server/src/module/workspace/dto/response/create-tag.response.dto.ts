@@ -1,5 +1,4 @@
-import { Expose, Transform, Type } from 'class-transformer';
-import { User } from '../../../user/schema/user.schema';
+import { Expose, Transform } from 'class-transformer';
 
 export class CreateTagResponseDto {
   @Expose()

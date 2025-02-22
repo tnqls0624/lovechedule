@@ -18,4 +18,13 @@ export class UserService {
       throw new HttpException(e, e.status);
     }
   }
+  
+  async confirmInviteCode(code: string){
+    try {
+      const user =  await this.userRepository.confirmInviteCode(code);
+      return user ? true : false;
+    }catch (e) {
+      this.logger.error(e);
+    }
+  }
 }

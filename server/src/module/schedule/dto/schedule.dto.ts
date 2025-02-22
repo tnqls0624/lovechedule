@@ -1,7 +1,6 @@
 import { Expose, Transform, Type } from 'class-transformer';
 import { Workspace } from '../../workspace/schema/workspace.schema';
 import { Types } from 'mongoose';
-import { Prop } from '@nestjs/mongoose';
 import { User } from '../../user/schema/user.schema';
 
 export class ScheduleDto {
@@ -13,11 +12,16 @@ export class ScheduleDto {
   title: string;
 
   @Expose()
-  description: string;
+  memo: string;
 
   @Expose()
-  @Prop({ required: true, type: Date })
-  date: Date;
+  start_date: string;
+
+  @Expose()
+  end_date: string;
+
+  @Expose()
+  alram_date: string;
 
   @Expose()
   @Type(() => User)

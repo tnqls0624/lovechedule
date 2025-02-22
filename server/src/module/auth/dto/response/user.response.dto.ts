@@ -6,6 +6,9 @@ export class UserResponseDto {
   readonly _id: string;
 
   @Expose()
+  readonly email: string;
+
+  @Expose()
   readonly name: string;
 
   @Expose()
@@ -15,5 +18,11 @@ export class UserResponseDto {
   readonly login_type: string;
 
   @Expose()
-  readonly two_factor_enabled: boolean;
+  readonly birthday: string;
+
+  @Expose()
+  readonly invite_code: string;
+
+  @Expose()
+  readonly gender: string;
 }

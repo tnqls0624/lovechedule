@@ -32,6 +32,12 @@ build_and_push_image() {
     local registry="$3"
     local target="$4"
 
+    # MongoDB, Redis, Traefik은 빌드 없이 Docker Hub에서 Pull
+    if [[ "$target" == "mongodb" || "$target" == "redis" || "$target" == "traefik" ]]; then
+        echo "✅ ${target}는 Docker Hub에서 Pull만 하고 빌드하지 않습니다."
+        return
+    fi
+
     if [ -n "$target" ]; then
         echo "🎯 타겟 빌드: ${target}"
         docker build --no-cache -t "${registry}/${image_name}:${tag}-${target}" --target "${target}" ../server

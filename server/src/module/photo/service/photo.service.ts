@@ -39,7 +39,6 @@ export class PhotoService {
    */
   async uploadFile(file: Express.Multer.File): Promise<{ url: string }> {
     try {
-      console.log('file:', file);
       const fileExtension = mime.extension(file.mimetype);
       if (!fileExtension) {
         throw new Error(`Unsupported file type: ${file.mimetype}`);
@@ -52,7 +51,6 @@ export class PhotoService {
       // const existingPhoto = await this.photoModel.findOne({ hash: fileHash });
       const existingPhoto = await this.photoRepository.findHash(fileHash);
       if (existingPhoto) {
-        console.log('✅ 기존 업로드된 파일:', existingPhoto.url);
         return { url: existingPhoto.url };
       }
 

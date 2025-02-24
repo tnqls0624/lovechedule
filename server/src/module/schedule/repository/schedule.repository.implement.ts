@@ -55,6 +55,7 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
     // 1. 일반 일정 및 반복 일정 가져오기
     const schedules = await this.schedule_model
       .find({
+        workspace: _id,
         $or: [
           {
             start_date: { $gte: start_date, $lt: end_date }
@@ -129,12 +130,12 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
         break;
       }
       case CountType.TOGETHER: {
-        query.participants = { $all: [master_id, guest_id], $size: 2 };
+        query.participants = { $eq: [master_id, guest_id] };
         break;
       }
       case CountType.ANNIVERSARY: {
         query.is_anniversary = true;
-        query.participants = { $all: [master_id, guest_id], $size: 2 };
+        query.participants = { $eq: [master_id, guest_id] };
       }
     }
     return this.schedule_model.countDocuments(query).exec();

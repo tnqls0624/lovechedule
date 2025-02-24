@@ -47,7 +47,7 @@ export class WorkspaceService {
   async update(_id: string, body: UpdateWorkspaceRequestDto) {
     try {
       const {users, ...rest} = body;
-      if(users.length){
+      if(users){
         await this.userRepository.updateUsersName(body.users as UpdateUserNameRequestDto[]);
       }
       const workspace = await this.workspaceRepository.update(

@@ -73,6 +73,7 @@ export class ScheduleController {
     @Query('week') week: string,
     @Query('day') day: string
   ) {
+    console.log('asd')
     return this.scheduleService.find(_id, year, month, week, day);
   }
 

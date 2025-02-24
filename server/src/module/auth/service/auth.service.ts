@@ -38,7 +38,6 @@ export class AuthService {
               'Authorization': `Bearer ${body.access_token}`
             }
           });
-          console.log(data);
         }
       }
       // const user = await this.userRepository.findByEmail(body.email);

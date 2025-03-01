@@ -11,6 +11,7 @@ import {
 } from '../workspace/schema/workspace.schema';
 import { CacheModule as CacheStoreModule } from '../../lib/cache.module';
 import { WorkspaceModule } from '../workspace/workspace.module';
+import { FCMService } from './service/fcm.service';
 
 const infrastructure: Provider[] = [
   {
@@ -19,7 +20,7 @@ const infrastructure: Provider[] = [
   }
 ];
 
-const services = [ScheduleService];
+const services = [ScheduleService, FCMService];
 
 const controller = [ScheduleController];
 

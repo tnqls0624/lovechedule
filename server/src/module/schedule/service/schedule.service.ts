@@ -1,6 +1,9 @@
 import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Schedule } from '../schema/schedule.schema';
-import { CountType, ScheduleRepository } from '../interface/schedule.repository';
+import {
+  CountType,
+  ScheduleRepository
+} from '../interface/schedule.repository';
 import { CreateScheduleRequestDto } from '../dto/request/create-schedule.request.dto';
 import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
 import { CACHE_GENERATOR } from '../../../lib/cache.module';
@@ -11,6 +14,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { WorkspaceRepository } from 'src/module/workspace/interface/workspace.repository';
 import { Types } from 'mongoose';
+import { FCMService } from '../../../lib/fcm.service';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -22,10 +26,11 @@ dayjs.tz.setDefault('Asia/Seoul');
 export class ScheduleService {
   constructor(
     @Inject('SCHEDULE_REPOSITORY')
-    private scheduleRepository: ScheduleRepository,
-    @Inject('WORKSPACE_REPOSITORY')
-    private workspaceRepository: WorkspaceRepository,
-    @Inject(CACHE_GENERATOR) private readonly cacheGenerator: CACHE_GENERATOR
+    private readonly scheduleRepository: ScheduleRepository,
+    @Inject(CACHE_GENERATOR)
+    private readonly cacheGenerator: CACHE_GENERATOR,
+    private readonly workspaceRepository: WorkspaceRepository,
+    private readonly fcmService: FCMService
   ) {}
 
   private readonly logger = new Logger(ScheduleService.name);
@@ -92,20 +97,21 @@ export class ScheduleService {
 
       const combinedCalendar = [];
 
-      current_holiday && current_holiday.forEach(
-        (holiday: { locdate: number; dateName: any; isHoliday: string }) => {
-          const data_str = holiday.locdate.toString();
-          combinedCalendar.push({
-            date: dayjs(data_str).format('YYYY-MM-DD'),
-            title: holiday.dateName,
-            description:
-              holiday.isHoliday === 'Y' ? 'Public Holiday' : 'Workday',
-            participants: [],
-            tags: [],
-            is_holiday: true,
-          });
-        }
-      );
+      current_holiday &&
+        current_holiday.forEach(
+          (holiday: { locdate: number; dateName: any; isHoliday: string }) => {
+            const data_str = holiday.locdate.toString();
+            combinedCalendar.push({
+              date: dayjs(data_str).format('YYYY-MM-DD'),
+              title: holiday.dateName,
+              description:
+                holiday.isHoliday === 'Y' ? 'Public Holiday' : 'Workday',
+              participants: [],
+              tags: [],
+              is_holiday: true
+            });
+          }
+        );
 
       schedules.forEach((schedule) => {
         combinedCalendar.push({
@@ -117,7 +123,7 @@ export class ScheduleService {
           participants: schedule.participants,
           is_holiday: false,
           is_anniversary: schedule.is_anniversary,
-          repeat_type: schedule.repeat_type, // ✅ 반복 유형 추가
+          repeat_type: schedule.repeat_type // ✅ 반복 유형 추가
         });
       });
 
@@ -134,7 +140,9 @@ export class ScheduleService {
 
   async findById(_id: string): Promise<Schedule> {
     try {
-      const schedule = await this.scheduleRepository.findById(new Types.ObjectId(_id));
+      const schedule = await this.scheduleRepository.findById(
+        new Types.ObjectId(_id)
+      );
       return schedule;
     } catch (e) {
       this.logger.error(e);
@@ -144,7 +152,9 @@ export class ScheduleService {
 
   async count(_id: string): Promise<any> {
     try {
-      const workspace: any = await this.workspaceRepository.findOneById(new Types.ObjectId(_id));
+      const workspace: any = await this.workspaceRepository.findOneById(
+        new Types.ObjectId(_id)
+      );
       console.log(workspace);
       const settingResult = {
         master: {
@@ -168,16 +178,40 @@ export class ScheduleService {
       };
 
       const master_id: string = String(workspace.master._id);
-      const guest_user: any = workspace.users.find((user: any) => user._id.toString() !== master_id.toString());
+      const guest_user: any = workspace.users.find(
+        (user: any) => user._id.toString() !== master_id.toString()
+      );
 
-      const master_schedule_count = await this.scheduleRepository.count(new Types.ObjectId(_id), new Types.ObjectId(master_id), new Types.ObjectId(guest_user._id), CountType.MASTER);
-      const guest_schedule_count = await this.scheduleRepository.count(new Types.ObjectId(_id), new Types.ObjectId(master_id), new Types.ObjectId(guest_user._id), CountType.GUEST);
-      const together_schedule_count = await this.scheduleRepository.count(new Types.ObjectId(_id), new Types.ObjectId(master_id), new Types.ObjectId(guest_user._id), CountType.TOGETHER);
-      const anniversary_schedule_count = await this.scheduleRepository.count(new Types.ObjectId(_id), new Types.ObjectId(master_id), new Types.ObjectId(guest_user._id), CountType.ANNIVERSARY);
+      const master_schedule_count = await this.scheduleRepository.count(
+        new Types.ObjectId(_id),
+        new Types.ObjectId(master_id),
+        new Types.ObjectId(guest_user._id),
+        CountType.MASTER
+      );
+      const guest_schedule_count = await this.scheduleRepository.count(
+        new Types.ObjectId(_id),
+        new Types.ObjectId(master_id),
+        new Types.ObjectId(guest_user._id),
+        CountType.GUEST
+      );
+      const together_schedule_count = await this.scheduleRepository.count(
+        new Types.ObjectId(_id),
+        new Types.ObjectId(master_id),
+        new Types.ObjectId(guest_user._id),
+        CountType.TOGETHER
+      );
+      const anniversary_schedule_count = await this.scheduleRepository.count(
+        new Types.ObjectId(_id),
+        new Types.ObjectId(master_id),
+        new Types.ObjectId(guest_user._id),
+        CountType.ANNIVERSARY
+      );
 
       settingResult.master.count = master_schedule_count;
       settingResult.guest.count = guest_schedule_count;
-      settingResult.guest.name = workspace.users.find((user: any) => user._id.toString() !== master_id.toString()).name;
+      settingResult.guest.name = workspace.users.find(
+        (user: any) => user._id.toString() !== master_id.toString()
+      ).name;
       settingResult.together.count = together_schedule_count;
       settingResult.anniversary.count = anniversary_schedule_count;
       return settingResult;
@@ -187,10 +221,37 @@ export class ScheduleService {
     }
   }
 
-
   async insert(_id: string, body: CreateScheduleRequestDto): Promise<Schedule> {
     try {
-      const schedule = await this.scheduleRepository.insert(new Types.ObjectId(_id), body);
+      const schedule = await this.scheduleRepository.insert(
+        new Types.ObjectId(_id),
+        body
+      );
+
+      // 워크스페이스에서 상대방 정보 가져오기
+      const workspace = await this.workspaceRepository.findOneById(
+        new Types.ObjectId(_id)
+      );
+      const currentUserId = body.participants[0]; // 현재 스케줄을 등록하는 사용자
+
+      // 상대방 찾기 (커플 중 현재 사용자가 아닌 사람)
+      const partner: any = workspace.users.find(
+        (user: any) => user._id.toString() !== currentUserId
+      );
+
+      if (partner && partner.fcm_token) {
+        // FCM 푸시 알림 전송
+        await this.fcmService.sendPushNotification(
+          partner.fcm_token,
+          '새로운 스케줄이 등록되었습니다',
+          `${body.title} (${body.start_date})`,
+          {
+            scheduleId: schedule._id.toString(),
+            type: 'NEW_SCHEDULE'
+          }
+        );
+      }
+
       return schedule;
     } catch (e) {
       this.logger.error(e);
@@ -200,7 +261,10 @@ export class ScheduleService {
 
   async update(_id: string, body: UpdateScheduleRequestDto): Promise<Schedule> {
     try {
-      const schedule = await this.scheduleRepository.update(new Types.ObjectId(_id), body);
+      const schedule = await this.scheduleRepository.update(
+        new Types.ObjectId(_id),
+        body
+      );
       return schedule;
     } catch (e) {
       this.logger.error(e);
@@ -210,7 +274,9 @@ export class ScheduleService {
 
   async delete(_id: string): Promise<Schedule> {
     try {
-      const schedule = await this.scheduleRepository.delete(new Types.ObjectId(_id));
+      const schedule = await this.scheduleRepository.delete(
+        new Types.ObjectId(_id)
+      );
       return schedule;
     } catch (e) {
       this.logger.error(e);

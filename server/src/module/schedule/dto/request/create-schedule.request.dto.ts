@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsString
+} from 'class-validator';
 
 class TagDto {
   @IsString()
@@ -13,8 +19,8 @@ class TagDto {
 
 export enum RepeatType {
   NONE = 'none',
-  MONTHLY = "monthly",
-  YEARLY = "yearly",
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly'
 }
 
 export class CreateScheduleRequestDto {

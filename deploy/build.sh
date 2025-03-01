@@ -40,9 +40,9 @@ build_and_push_image() {
 
     if [ -n "$target" ]; then
         echo "🎯 타겟 빌드: ${target}"
-        docker build --no-cache -t "${registry}/${image_name}:${tag}-${target}" --target "${target}" ../server
-        echo "🐳 Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag}-${target}"
-        docker push "${registry}/${image_name}:${tag}-${target}"
+        docker build --no-cache -t "${registry}/${image_name}:${tag} --target "${target}" ../server
+        echo "🐳 Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag} ${target}"
+        docker push "${registry}/${image_name}:${tag} ${target}"
     else
         echo "🚀 전체 빌드: ${image_name}:${tag}"
         docker build --no-cache -t "${registry}/${image_name}:${tag}" ../server

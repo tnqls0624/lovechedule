@@ -15,6 +15,7 @@ import timezone from 'dayjs/plugin/timezone';
 import { WorkspaceRepository } from 'src/module/workspace/interface/workspace.repository';
 import { Types } from 'mongoose';
 import { FCMService } from './fcm.service';
+import { UserDto } from 'src/module/auth/dto/user.dto';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -222,7 +223,11 @@ export class ScheduleService {
     }
   }
 
-  async insert(_id: string, body: CreateScheduleRequestDto): Promise<Schedule> {
+  async insert(
+    user: UserDto,
+    _id: string,
+    body: CreateScheduleRequestDto
+  ): Promise<Schedule> {
     try {
       const schedule = await this.scheduleRepository.insert(
         new Types.ObjectId(_id),
@@ -234,7 +239,7 @@ export class ScheduleService {
         new Types.ObjectId(_id)
       );
 
-      const currentUserId = body.participants[0];
+      const currentUserId = user._id;
 
       // 상대방 찾기 (커플 중 현재 사용자가 아닌 사람)
       const partner: any = workspace.users.find(
@@ -244,8 +249,8 @@ export class ScheduleService {
       if (partner && partner.fcm_token) {
         await this.fcmService.sendPushNotification(
           partner.fcm_token,
-          '새로운 스케줄이 등록되었습니다',
-          `${body.title} (${body.start_date})`,
+          `${partner.name}님이 새로운 스케줄을 등록했습니다.`,
+          `${body.title}`,
           {
             scheduleId: schedule._id.toString(),
             type: 'NEW_SCHEDULE'

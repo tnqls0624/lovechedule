@@ -22,6 +22,8 @@ import { ResponseDto } from '../../../common/dto/response.dto';
 import { JwtAuthGuard } from '../../auth/guard';
 import { CreateScheduleRequestDto } from '../dto/request/create-schedule.request.dto';
 import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
+import { UserDto } from 'src/module/auth/dto/user.dto';
+import { User } from 'src/common/decorator/user.decorator';
 
 @ApiTags('Schedule')
 @Controller('schedule')
@@ -73,7 +75,6 @@ export class ScheduleController {
     @Query('week') week: string,
     @Query('day') day: string
   ) {
-    console.log('asd')
     return this.scheduleService.find(_id, year, month, week, day);
   }
 
@@ -118,8 +119,12 @@ export class ScheduleController {
     example: 'dsanjkn213nj21k'
   })
   @Post('/')
-  insert(@Query('_id') _id: string, @Body() body: CreateScheduleRequestDto) {
-    return this.scheduleService.insert(_id, body);
+  insert(
+    @User() user: UserDto,
+    @Query('_id') _id: string,
+    @Body() body: CreateScheduleRequestDto
+  ) {
+    return this.scheduleService.insert(user, _id, body);
   }
 
   @ApiOperation({ summary: 'Update Schedule' })

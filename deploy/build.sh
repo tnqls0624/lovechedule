@@ -25,30 +25,30 @@ set_compose_file() {
     echo "$env 환경을 사용하여 ${COMPOSE_FILE[*]} 파일을 설정합니다."
 }
 
-# Docker 이미지 빌드 및 푸시 함수 (타겟 추가)
+# Docker 이미지 빌드 및 푸시 함수
 build_and_push_image() {
     local image_name="$1"
     local tag="$2"
     local registry="$3"
-    local target="$4"
 
-    # MongoDB, Redis, Traefik은 빌드 없이 Docker Hub에서 Pull
-    if [[ "$target" == "mongodb" || "$target" == "redis" || "$target" == "traefik" ]]; then
-        echo "✅ ${target}는 Docker Hub에서 Pull만 하고 빌드하지 않습니다."
-        return
-    fi
-
-    if [ -n "$target" ]; then
-        echo "🎯 타겟 빌드: ${target}"
-        docker build --no-cache -t "${registry}/${image_name}:${tag} --target "${target}" ../server
-        echo "🐳 Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag} ${target}"
-        docker push "${registry}/${image_name}:${tag} ${target}"
-    else
-        echo "🚀 전체 빌드: ${image_name}:${tag}"
-        docker build --no-cache -t "${registry}/${image_name}:${tag}" ../server
-        echo "🐳 Docker 이미지를 푸시합니다: ${registry}/${image_name}:${tag}"
-        docker push "${registry}/${image_name}:${tag}"
-    fi
+    # 서비스별 이미지 처리
+    case "$image_name" in
+        "traefik")
+            echo "✅ traefik은 Docker Hub에서 Pull만 하고 빌드하지 않습니다."
+            ;;
+        "redis")
+            echo "✅ redis는 Docker Hub에서 Pull만 하고 빌드하지 않습니다."
+            ;;
+        "lovechedule-server")
+            echo "🚀 서버 애플리케이션을 빌드합니다..."
+            docker build --no-cache -t "${registry}/project:${tag}" ../server
+            echo "🐳 Docker 이미지를 푸시합니다: ${registry}/project:${tag}"
+            docker push "${registry}/project:${tag}"
+            ;;
+        *)
+            echo "⚠️ 알 수 없는 서비스입니다: $image_name"
+            ;;
+    esac
 }
 
 # Docker Swarm 스택 배포 함수
@@ -95,15 +95,15 @@ check_services() {
 
 # 환경 변수 체크 및 설정
 if [ -z "$1" ] || [ -z "$2" ]; then
-    echo "사용법: $0 <스택 이름> <환경> [타겟] [--deploy]"
-    echo "예: $0 lovechedule prd mongodb --deploy"
-    echo "예: $0 lovechedule prd --deploy  (전체 빌드 및 배포)"
+    echo "사용법: $0 <스택 이름> <환경> [서비스] [--deploy]"
+    echo "예: $0 lovechedule prd lovechedule-server --deploy"
+    echo "예: $0 lovechedule prd --deploy  (전체 배포)"
     exit 1
 fi
 
 STACK_NAME="$1"  # 첫 번째 인수는 스택 이름
 ENV="$2"         # 두 번째 인수는 환경 이름
-TARGET="${3:-}"  # 세 번째 인수는 타겟 이름 (옵션), 없으면 전체 빌드
+SERVICE="${3:-}"  # 세 번째 인수는 서비스 이름 (옵션)
 shift 3          # 첫 세 개의 인수 제거
 
 # '--deploy' 여부 확인
@@ -120,13 +120,17 @@ if ! docker info | grep -q "Swarm: active"; then
     docker swarm init
 fi
 
-# 이미지 이름 및 레지스트리 설정
-IMAGE_NAME="project"
+# 이미지 태그 및 레지스트리 설정
 IMAGE_TAG="latest"
-REGISTRY="soomumu" # Docker Hub 사용자명 입력
+REGISTRY="soomumu"
 
-# 이미지 빌드 및 푸시 (타겟 지정)
-build_and_push_image "$IMAGE_NAME" "$IMAGE_TAG" "$REGISTRY" "$TARGET"
+# 서비스별 이미지 빌드 및 푸시
+if [ -n "$SERVICE" ]; then
+    build_and_push_image "$SERVICE" "$IMAGE_TAG" "$REGISTRY"
+else
+    # 전체 서비스 빌드
+    build_and_push_image "lovechedule-server" "$IMAGE_TAG" "$REGISTRY"
+fi
 
 # Compose 파일 설정
 set_compose_file "$ENV"

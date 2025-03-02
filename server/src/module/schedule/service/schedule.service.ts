@@ -14,7 +14,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { WorkspaceRepository } from 'src/module/workspace/interface/workspace.repository';
 import { Types } from 'mongoose';
-import { FCMService } from '../../../lib/fcm.service';
+import { FCMService } from './fcm.service';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -29,6 +29,7 @@ export class ScheduleService {
     private readonly scheduleRepository: ScheduleRepository,
     @Inject(CACHE_GENERATOR)
     private readonly cacheGenerator: CACHE_GENERATOR,
+    @Inject('WORKSPACE_REPOSITORY')
     private readonly workspaceRepository: WorkspaceRepository,
     private readonly fcmService: FCMService
   ) {}
@@ -232,7 +233,8 @@ export class ScheduleService {
       const workspace = await this.workspaceRepository.findOneById(
         new Types.ObjectId(_id)
       );
-      const currentUserId = body.participants[0]; // 현재 스케줄을 등록하는 사용자
+
+      const currentUserId = body.participants[0];
 
       // 상대방 찾기 (커플 중 현재 사용자가 아닌 사람)
       const partner: any = workspace.users.find(
@@ -240,7 +242,6 @@ export class ScheduleService {
       );
 
       if (partner && partner.fcm_token) {
-        // FCM 푸시 알림 전송
         await this.fcmService.sendPushNotification(
           partner.fcm_token,
           '새로운 스케줄이 등록되었습니다',
@@ -255,7 +256,10 @@ export class ScheduleService {
       return schedule;
     } catch (e) {
       this.logger.error(e);
-      throw new HttpException(e, e.status);
+      throw new HttpException(
+        e.message || 'Internal server error',
+        e.status || 500
+      );
     }
   }
 

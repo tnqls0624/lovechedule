@@ -1,22 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import { ServiceAccount } from 'firebase-admin';
-
+import path from 'path';
+import fs from 'fs';
 @Injectable()
 export class FCMService {
   private readonly logger = new Logger(FCMService.name);
 
   constructor() {
-    // Firebase Admin SDK 초기화
-    const serviceAccount = {
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-    } as ServiceAccount;
-
     if (!admin.apps.length) {
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential.cert(
+          JSON.parse(
+            fs.readFileSync(
+              path.join(
+                `${__dirname}/asset`,
+                'lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json'
+              ),
+              'utf8'
+            )
+          )
+        )
       });
     }
   }

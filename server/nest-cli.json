@@ -2,7 +2,7 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "assets": [{"include": "./asset/**"}],
+    "assets": [{ "include": "asset/**", "outDir": "dist" }],
     "watchAssets": true,
     "webpack": true,
     "webpackConfigPath": "webpack-hmr.config.js",

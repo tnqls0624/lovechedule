@@ -249,7 +249,7 @@ export class ScheduleService {
       if (partner && partner.fcm_token) {
         await this.fcmService.sendPushNotification(
           partner.fcm_token,
-          `${partner.name}님이 새로운 스케줄을 등록했습니다.`,
+          `${user.name}님의 새로운 스케줄을 등록`,
           `${body.title}`,
           {
             scheduleId: schedule._id.toString(),

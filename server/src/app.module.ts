@@ -17,10 +17,12 @@ import {
 import { WeatherModule } from './module/weather/weather.module';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { ScheduleModule as TaskScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    TaskScheduleModule.forRoot(),
     CacheModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -98,9 +100,8 @@ export class AppModule implements OnModuleInit {
       }
 
       await this.cleanOldCacheData(years_to_fetch);
-    }catch (e){
-      this.logger.error(e)
+    } catch (e) {
+      this.logger.error(e);
     }
-
   }
 }

@@ -248,11 +248,11 @@ export class ScheduleService {
         throw new HttpException('Workspace not found', 404);
       }
 
-      const currentUserId = user._id;
+      const current_user_id = user._id;
 
       // 상대방 찾기 (커플 중 현재 사용자가 아닌 사람)
       const partner: any = workspace.users.find(
-        (user: any) => user._id.toString() !== currentUserId
+        (user: any) => user._id.toString() !== current_user_id
       );
 
       // 상대방이 있고, FCM 토큰이 있고, 알림 설정이 활성화되어 있는 경우에만 알림 전송

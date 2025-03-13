@@ -12,6 +12,7 @@ import {
 import { CacheModule as CacheStoreModule } from '../../lib/cache.module';
 import { WorkspaceModule } from '../workspace/workspace.module';
 import { FCMService } from './service/fcm.service';
+import { AnniversaryNotificationService } from './service/anniversary-notification.service';
 
 const infrastructure: Provider[] = [
   {
@@ -20,7 +21,7 @@ const infrastructure: Provider[] = [
   }
 ];
 
-const services = [ScheduleService, FCMService];
+const services = [ScheduleService, FCMService, AnniversaryNotificationService];
 
 const controller = [ScheduleController];
 

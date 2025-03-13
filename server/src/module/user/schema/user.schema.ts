@@ -32,21 +32,21 @@ export class User {
 
   @Expose()
   @Prop({
-    type: String,
+    type: String
   })
-  emoji: string
+  emoji: string;
 
   @Expose()
   @Prop({
-    type: String,
+    type: String
   })
-  gender: string
+  gender: string;
 
   @Expose()
   @Prop({
-    type: String,
+    type: String
   })
-  birthday: string
+  birthday: string;
 
   @Expose()
   @Prop({ type: String, required: true, index: true })
@@ -55,6 +55,22 @@ export class User {
   @Expose()
   @Prop({ type: String, required: false, index: true })
   fcm_token: string;
+
+  @Expose()
+  @Prop({ type: Boolean, default: true })
+  push_enabled: boolean;
+
+  @Expose()
+  @Prop({ type: Boolean, default: true })
+  schedule_alarm: boolean;
+
+  @Expose()
+  @Prop({ type: Boolean, default: true })
+  anniversary_alarm: boolean;
+
+  // @Expose()
+  // @Prop({ type: Boolean, default: true })
+  // message_alarm: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

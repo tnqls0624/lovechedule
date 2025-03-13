@@ -24,5 +24,20 @@ export class UserResponseDto {
   readonly invite_code: string;
 
   @Expose()
+  readonly fcm_token: string;
+
+  @Expose()
+  readonly push_enabled: boolean;
+
+  @Expose()
+  readonly schedule_alarm: boolean;
+
+  @Expose()
+  readonly anniversary_alarm: boolean;
+
+  // @Expose()
+  // readonly message_alarm: boolean;
+
+  @Expose()
   readonly gender: string;
 }

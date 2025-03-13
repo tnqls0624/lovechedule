@@ -23,6 +23,18 @@ export class UserDto {
   readonly fcm_token: string;
 
   @Expose()
+  readonly push_enabled: boolean;
+
+  @Expose()
+  readonly schedule_alarm: boolean;
+
+  @Expose()
+  readonly anniversary_alarm: boolean;
+
+  // @Expose()
+  // readonly message_alarm: boolean;
+
+  @Expose()
   readonly thumbnail_image: string;
 
   @Expose()

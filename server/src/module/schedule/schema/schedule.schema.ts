@@ -39,7 +39,6 @@ export class Schedule {
   @Prop({ type: String, enum: ['none', 'monthly', 'yearly'], default: 'none' })
   repeat_type: 'none' | 'monthly' | 'yearly';
 
-
   // @Expose()
   // @Prop({ required: true, type: String })
   // alram_date: string;

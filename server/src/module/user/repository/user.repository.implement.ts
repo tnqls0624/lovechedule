@@ -6,6 +6,7 @@ import { Model, Types } from 'mongoose';
 import { CreateUserRequestDto } from '../dto/request/create-user.request.dto';
 import { Workspace } from '../../workspace/schema/workspace.schema';
 import { UpdateUserNameRequestDto } from '../dto/request/update-user-name.request.dto';
+import { NotificationSettingsDto } from '../dto/request/notification-settings.dto';
 
 @Injectable()
 export class UserRepositoryImplement implements UserRepository {
@@ -16,9 +17,11 @@ export class UserRepositoryImplement implements UserRepository {
   ) {}
 
   confirmInviteCode(code: string): Promise<any> {
-    return this.user_model.findOne({
+    return this.user_model
+      .findOne({
         invite_code: code
-    }).exec();
+      })
+      .exec();
   }
 
   insert(body: CreateUserRequestDto): Promise<User> {
@@ -28,14 +31,14 @@ export class UserRepositoryImplement implements UserRepository {
 
   async updateUsersName(body: UpdateUserNameRequestDto[]): Promise<boolean> {
     await this.user_model.bulkWrite(
-      body.map(user => ({
+      body.map((user) => ({
         updateOne: {
           filter: { _id: user._id },
-          update: { name: user.name },
-        },
+          update: { name: user.name }
+        }
       }))
     );
-    return true
+    return true;
   }
 
   findAll(): Promise<User[]> {
@@ -69,11 +72,7 @@ export class UserRepositoryImplement implements UserRepository {
   }
 
   findByInviteCode(code: string): Promise<User> {
-    return (
-      this.user_model
-        .findOne({ invite_code: code })
-        .exec()
-    );
+    return this.user_model.findOne({ invite_code: code }).exec();
   }
 
   join(workspace_id: Types.ObjectId, _id: Types.ObjectId): Promise<User> {
@@ -86,5 +85,14 @@ export class UserRepositoryImplement implements UserRepository {
         new: true
       }
     );
+  }
+
+  updateNotificationSettings(
+    _id: Types.ObjectId,
+    settings: NotificationSettingsDto
+  ): Promise<User> {
+    return this.user_model
+      .findByIdAndUpdate({ _id }, { $set: settings }, { new: true })
+      .exec();
   }
 }

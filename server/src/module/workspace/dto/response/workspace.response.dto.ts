@@ -32,6 +32,9 @@ export class WorkspaceResponseDto {
   readonly emoji: any;
 
   @Expose()
+  readonly thumbnail_image: string;
+
+  @Expose()
   readonly createAt: Date;
 
   @Expose()

@@ -7,11 +7,14 @@ export enum CountType {
   MASTER = 'MASTER',
   GUEST = 'GUEST',
   TOGETHER = 'TOGETHER',
-  ANNIVERSARY = 'ANNIVERSARY',
+  ANNIVERSARY = 'ANNIVERSARY'
 }
 
 export interface ScheduleRepository {
-  insert(_id: Types.ObjectId, body: CreateScheduleRequestDto): Promise<Schedule>;
+  insert(
+    _id: Types.ObjectId,
+    body: CreateScheduleRequestDto
+  ): Promise<Schedule>;
   // findAll(): Promise<User[]>;
   findByWorkspaceId(
     _id: Types.ObjectId,
@@ -21,9 +24,17 @@ export interface ScheduleRepository {
     day: string
   ): Promise<Schedule[]>;
   findById(_id: Types.ObjectId): Promise<Schedule>;
-  update(_id: Types.ObjectId, body: UpdateScheduleRequestDto): Promise<Schedule>;
+  update(
+    _id: Types.ObjectId,
+    body: UpdateScheduleRequestDto
+  ): Promise<Schedule>;
   delete(_id: Types.ObjectId): Promise<Schedule>;
-  count(workspace_id: Types.ObjectId, master_id: Types.ObjectId, guest_id: Types.ObjectId, type: CountType): Promise<any>;
+  count(
+    workspace_id: Types.ObjectId,
+    master_id: Types.ObjectId,
+    guest_id: Types.ObjectId,
+    type: CountType
+  ): Promise<any>;
   // findByUserId(user_id: string): Promise<User>;
 
   // join(workspace_id: Types.ObjectId, user_id: Types.ObjectId): Promise<User>;

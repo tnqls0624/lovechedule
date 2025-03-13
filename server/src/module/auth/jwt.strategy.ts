@@ -4,6 +4,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { UserRepository } from '../user/interface/user.repository';
 import { AuthService } from './service/auth.service';
 import { Workspace } from '../workspace/schema/workspace.schema';
+import { Types } from 'mongoose';
 
 export type Payload = {
   _id: string;
@@ -31,21 +32,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: Payload) {
     const { _id } = payload;
-    const user = await this.userRepository.findById(_id);
+    const user = await this.userRepository.findById(new Types.ObjectId(_id));
     if (!user) {
       return false;
     }
 
-    const user_data: Payload = {
-      _id: String(user._id),
-      email: user.email,
-      name: user.name,
-      gender: user.gender,
-      birthday: user.birthday,
-      invite_code: user.invite_code,
-      login_type: user.login_type,
-      workspaces: user.workspaces
-    };
+    const user_data: Payload = user;
 
     return user_data;
   }

@@ -26,7 +26,9 @@ export class WorkspaceService {
 
   async create(user_dto: UserDto, body: CreateWorkspaceRequestDto) {
     try {
-      const master_user = await this.userRepository.findByInviteCode(body.invite_code);
+      const master_user = await this.userRepository.findByInviteCode(
+        body.invite_code
+      );
       if (!master_user) {
         throw new NotFoundException('초대코드를 찾을 수 없습니다');
       }
@@ -46,9 +48,11 @@ export class WorkspaceService {
 
   async update(_id: string, body: UpdateWorkspaceRequestDto) {
     try {
-      const {users, ...rest} = body;
-      if(users){
-        await this.userRepository.updateUsersName(body.users as UpdateUserNameRequestDto[]);
+      const { users, ...rest } = body;
+      if (users) {
+        await this.userRepository.updateUsersName(
+          body.users as UpdateUserNameRequestDto[]
+        );
       }
       const workspace = await this.workspaceRepository.update(
         new Types.ObjectId(_id),
@@ -89,7 +93,9 @@ export class WorkspaceService {
 
   async findOneById(_id: string): Promise<Workspace> {
     try {
-      const workspace = await this.workspaceRepository.findOneById(new Types.ObjectId(String(_id)));
+      const workspace = await this.workspaceRepository.findOneById(
+        new Types.ObjectId(String(_id))
+      );
       if (!workspace) throw new NotFoundException('no workspace');
       return workspace;
     } catch (e) {

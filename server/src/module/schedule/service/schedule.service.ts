@@ -52,6 +52,12 @@ export class ScheduleService {
         week,
         day
       );
+
+      // _id만 있고 year가 없는 경우 모든 스케줄 반환
+      if (!year) {
+        return schedules;
+      }
+
       const holiday_calendar: any = await this.cacheGenerator.getCache(
         `calendar:${year}`
       );
@@ -157,7 +163,6 @@ export class ScheduleService {
       const workspace: any = await this.workspaceRepository.findOneById(
         new Types.ObjectId(_id)
       );
-      console.log(workspace);
       const settingResult = {
         master: {
           name: workspace.master.name,
@@ -239,6 +244,10 @@ export class ScheduleService {
         new Types.ObjectId(_id)
       );
 
+      if (!workspace) {
+        throw new HttpException('Workspace not found', 404);
+      }
+
       const currentUserId = user._id;
 
       // 상대방 찾기 (커플 중 현재 사용자가 아닌 사람)
@@ -246,7 +255,15 @@ export class ScheduleService {
         (user: any) => user._id.toString() !== currentUserId
       );
 
-      if (partner && partner.fcm_token) {
+      // 상대방이 있고, FCM 토큰이 있고, 알림 설정이 활성화되어 있는 경우에만 알림 전송
+      if (
+        partner &&
+        partner.fcm_token &&
+        partner.push_enabled &&
+        (body.is_anniversary
+          ? partner.anniversary_alarm
+          : partner.schedule_alarm)
+      ) {
         await this.fcmService.sendPushNotification(
           partner.fcm_token,
           `${user.name}님의 새로운 스케줄을 등록`,

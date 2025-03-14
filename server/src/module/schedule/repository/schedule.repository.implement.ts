@@ -12,6 +12,7 @@ import { User } from '../../user/schema/user.schema';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
+import { Logger } from '@nestjs/common';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -20,6 +21,8 @@ dayjs.tz.setDefault('Asia/Seoul');
 
 @Injectable()
 export class ScheduleRepositoryImplement implements ScheduleRepository {
+  private readonly logger = new Logger(ScheduleRepositoryImplement.name);
+
   constructor(
     @InjectModel(Schedule.name, 'lovechedule')
     private schedule_model: Model<Schedule>,
@@ -154,22 +157,24 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
 
     switch (countType) {
       case CountType.MASTER: {
-        query.participants = { $eq: [master_id] };
+        query.participants = { $in: [master_id], $nin: [guest_id] };
         break;
       }
       case CountType.GUEST: {
-        query.participants = { $eq: [guest_id] };
+        query.participants = { $in: [guest_id], $nin: [master_id] };
         break;
       }
       case CountType.TOGETHER: {
-        query.participants = { $eq: [master_id, guest_id] };
+        query.participants = { $all: [master_id, guest_id] };
         break;
       }
       case CountType.ANNIVERSARY: {
         query.is_anniversary = true;
-        query.participants = { $eq: [master_id, guest_id] };
+        break;
       }
     }
+
+    this.logger.log(`Count query: ${JSON.stringify(query)}`);
     return this.schedule_model.countDocuments(query).exec();
   }
 

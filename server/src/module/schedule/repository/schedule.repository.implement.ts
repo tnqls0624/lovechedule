@@ -173,8 +173,6 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
         break;
       }
     }
-
-    this.logger.log(`Count query: ${JSON.stringify(query)}`);
     return this.schedule_model.countDocuments(query).exec();
   }
 

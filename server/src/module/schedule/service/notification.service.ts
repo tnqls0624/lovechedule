@@ -88,7 +88,6 @@ export class NotificationService {
       this.logger.warn(
         'Redlock이 초기화되지 않았습니다. 락 없이 알림 작업을 실행합니다.'
       );
-      await this.executeScheduleNotifications();
       return;
     }
 

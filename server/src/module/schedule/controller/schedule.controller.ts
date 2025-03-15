@@ -24,14 +24,14 @@ import { CreateScheduleRequestDto } from '../dto/request/create-schedule.request
 import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
 import { UserDto } from 'src/module/auth/dto/user.dto';
 import { User } from 'src/common/decorator/user.decorator';
-import { AnniversaryNotificationService } from '../service/anniversary-notification.service';
+import { NotificationService } from '../service/notification.service';
 
 @ApiTags('Schedule')
 @Controller('schedule')
 export class ScheduleController {
   constructor(
     private readonly scheduleService: ScheduleService,
-    private readonly anniversaryNotificationService: AnniversaryNotificationService
+    private readonly notificationService: NotificationService
   ) {}
 
   @ApiOkResponse({
@@ -157,11 +157,9 @@ export class ScheduleController {
     return this.scheduleService.delete(_id);
   }
 
-  @ApiOperation({ summary: '기념일 알림 수동 실행 (테스트용)' })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Post('/check-anniversaries')
-  async checkAnniversaries() {
-    return this.anniversaryNotificationService.manualCheckAnniversaries();
+  @ApiOperation({ summary: '일정 알림 수동 실행 (테스트용)' })
+  @Post('/check-schedules')
+  async checkSchedules() {
+    return this.notificationService.manualCheckSchedules();
   }
 }

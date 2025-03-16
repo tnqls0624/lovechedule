@@ -7,21 +7,19 @@ export class FCMService {
   private readonly logger = new Logger(FCMService.name);
 
   constructor() {
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(
-          JSON.parse(
-            fs.readFileSync(
-              path.join(
-                `${__dirname}/asset`,
-                'lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json'
-              ),
-              'utf8'
-            )
+    admin.initializeApp({
+      credential: admin.credential.cert(
+        JSON.parse(
+          fs.readFileSync(
+            path.join(
+              `${__dirname}/asset`,
+              'lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json'
+            ),
+            'utf8'
           )
         )
-      });
-    }
+      )
+    });
   }
 
   async sendPushNotification(

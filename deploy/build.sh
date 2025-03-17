@@ -41,9 +41,16 @@ build_and_push_image() {
             ;;
         "lovechedule-server")
             echo "🚀 서버 애플리케이션을 빌드합니다..."
-            docker build --no-cache -t "${registry}/project:${tag}" ../server
+            # 이미지 빌드 전 기존 이미지 제거
+            docker rmi "${registry}/project:${tag}" 2>/dev/null || true
+            # 강제로 캐시 무시하고 빌드
+            docker build --no-cache --pull -t "${registry}/project:${tag}" ../server
+            # 타임스탬프 태그도 함께 생성
+            docker tag "${registry}/project:${tag}" "${registry}/project:${tag}-$(date +%Y%m%d%H%M%S)"
             echo "🐳 Docker 이미지를 푸시합니다: ${registry}/project:${tag}"
             docker push "${registry}/project:${tag}"
+            # 타임스탬프 태그도 푸시
+            docker push "${registry}/project:${tag}-$(date +%Y%m%d%H%M%S)"
             ;;
         *)
             echo "⚠️ 알 수 없는 서비스입니다: $image_name"
@@ -55,7 +62,10 @@ build_and_push_image() {
 deploy_stack() {
     local stack_name="$1"
     echo "🚀 Docker Swarm 스택을 배포합니다..."
-    docker stack deploy -c ./docker-compose/base.yaml $(printf -- '-c %s ' "${COMPOSE_FILE[@]}") "$stack_name"
+    # 서비스 업데이트 전 이미지 강제 갱신
+    docker service update --force --image-pull-policy always $(docker stack services -q "$stack_name") 2>/dev/null || true
+    # 스택 배포
+    docker stack deploy --prune --with-registry-auth -c ./docker-compose/base.yaml $(printf -- '-c %s ' "${COMPOSE_FILE[@]}") "$stack_name"
     echo "✅ Docker Swarm 스택 배포가 완료되었습니다."
 }
 
@@ -121,7 +131,9 @@ if ! docker info | grep -q "Swarm: active"; then
 fi
 
 # 이미지 태그 및 레지스트리 설정
+# 타임스탬프를 포함한 태그 생성
 IMAGE_TAG="latest"
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
 REGISTRY="soomumu"
 
 # 서비스별 이미지 빌드 및 푸시
@@ -137,6 +149,10 @@ set_compose_file "$ENV"
 
 # 스크립트 옵션 처리
 if [ "$DEPLOY" = true ]; then
+    # 배포 전 이미지 강제 갱신
+    echo "🔄 Docker 이미지를 강제로 갱신합니다..."
+    docker pull "${REGISTRY}/project:${IMAGE_TAG}" --quiet
+    
     deploy_stack "$STACK_NAME"
     check_services "$STACK_NAME"
 else

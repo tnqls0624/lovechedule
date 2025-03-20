@@ -42,15 +42,30 @@ build_and_push_image() {
         "lovechedule-server")
             echo "🚀 서버 애플리케이션을 빌드합니다..."
             # 이미지 빌드 전 기존 이미지 제거
-            docker rmi "${registry}/project:${tag}" 2>/dev/null || true
+            docker rmi "${registry}/lovechedule-server:${tag}" 2>/dev/null || true
             # 강제로 캐시 무시하고 빌드
-            docker build --no-cache --pull -t "${registry}/project:${tag}" ../server
+            docker build --no-cache --pull -t "${registry}/lovechedule-server:${tag}" ../server
             # 타임스탬프 태그도 함께 생성
-            docker tag "${registry}/project:${tag}" "${registry}/project:${tag}-$(date +%Y%m%d%H%M%S)"
-            echo "🐳 Docker 이미지를 푸시합니다: ${registry}/project:${tag}"
-            docker push "${registry}/project:${tag}"
+            docker tag "${registry}/lovechedule-server:${tag}" "${registry}/lovechedule-server:${tag}-$(date +%Y%m%d%H%M%S)"
+            echo "🐳 Docker 이미지를 푸시합니다: ${registry}/lovechedule-server:${tag}"
+            docker push "${registry}/lovechedule-server:${tag}"
             # 타임스탬프 태그도 푸시
-            docker push "${registry}/project:${tag}-$(date +%Y%m%d%H%M%S)"
+            docker push "${registry}/lovechedule-server:${tag}-$(date +%Y%m%d%H%M%S)"
+            ;;
+        "notification-server")
+            echo "🚀 알림 서버 애플리케이션을 빌드합니다..."
+            # 이미지 빌드 전 기존 이미지 제거
+            docker rmi "${registry}/notification-server:${tag}" 2>/dev/null || true
+            # 서버 앱 빌드
+            (cd ../server/notification && npm install && npm run build)
+            # 강제로 캐시 무시하고 빌드
+            docker build --no-cache --pull -t "${registry}/notification-server:${tag}" ../server/notification
+            # 타임스탬프 태그도 함께 생성
+            docker tag "${registry}/notification-server:${tag}" "${registry}/notification-server:${tag}-$(date +%Y%m%d%H%M%S)"
+            echo "🐳 Docker 이미지를 푸시합니다: ${registry}/notification-server:${tag}"
+            docker push "${registry}/notification-server:${tag}"
+            # 타임스탬프 태그도 푸시
+            docker push "${registry}/notification-server:${tag}-$(date +%Y%m%d%H%M%S)"
             ;;
         *)
             echo "⚠️ 알 수 없는 서비스입니다: $image_name"
@@ -107,6 +122,7 @@ check_services() {
 if [ -z "$1" ] || [ -z "$2" ]; then
     echo "사용법: $0 <스택 이름> <환경> [서비스] [--deploy]"
     echo "예: $0 lovechedule prd lovechedule-server --deploy"
+    echo "예: $0 lovechedule prd notification-server --deploy"
     echo "예: $0 lovechedule prd --deploy  (전체 배포)"
     exit 1
 fi
@@ -142,6 +158,7 @@ if [ -n "$SERVICE" ]; then
 else
     # 전체 서비스 빌드
     build_and_push_image "lovechedule-server" "$IMAGE_TAG" "$REGISTRY"
+    build_and_push_image "notification-server" "$IMAGE_TAG" "$REGISTRY"
 fi
 
 # Compose 파일 설정
@@ -151,7 +168,11 @@ set_compose_file "$ENV"
 if [ "$DEPLOY" = true ]; then
     # 배포 전 이미지 강제 갱신
     echo "🔄 Docker 이미지를 강제로 갱신합니다..."
-    docker pull "${REGISTRY}/project:${IMAGE_TAG}" --quiet
+    docker pull "${REGISTRY}/lovechedule-server:${IMAGE_TAG}" --quiet
+    
+    if [ "$SERVICE" == "notification-server" ] || [ -z "$SERVICE" ]; then
+        docker pull "${REGISTRY}/notification-server:${IMAGE_TAG}" --quiet
+    fi
     
     deploy_stack "$STACK_NAME"
     check_services "$STACK_NAME"

@@ -53,7 +53,7 @@ services:
 
   # lovechedule 애플리케이션
   lovechedule-server:
-    image: soomumu/project:latest
+    image: soomumu/lovechedule-server:latest
     environment:
       - MONGO_URL=mongodb://root:1234@mongodb:27017/lovechedule?authSource=admin
       - JWT_ACCESS_TOKEN_SECRET=secret
@@ -73,6 +73,25 @@ services:
         - "traefik.http.routers.lovechedule.entrypoints=web"
         # 내부 서비스 포트 지정
         - "traefik.http.services.lovechedule-service.loadbalancer.server.port=3000" # 내부 서비스 포트
+    networks:
+      - lovechedule-network
+
+  # 알림 서버 애플리케이션
+  notification-server:
+    image: soomumu/notification-server:latest
+    environment:
+      - API_URL=http://lovechedule-server:3000
+      - API_KEY=your-api-key-here
+      - NODE_ENV=production
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.notification.rule=Host(`lovechedule.com`) && PathPrefix(`/notification`)"
+        - "traefik.http.routers.notification.entrypoints=web"
+        - "traefik.http.services.notification-service.loadbalancer.server.port=3100"
     networks:
       - lovechedule-network
 

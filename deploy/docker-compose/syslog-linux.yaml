@@ -15,6 +15,13 @@ services:
         syslog-facility: local0
         tag: lovechedule-server
 
+  notification-server:
+    logging:
+      driver: syslog
+      options:
+        syslog-facility: local0
+        tag: notification-server
+
   redis:
     logging:
       driver: syslog

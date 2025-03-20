@@ -150,7 +150,7 @@ fi
 # 타임스탬프를 포함한 태그 생성
 IMAGE_TAG="latest"
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
-REGISTRY="soomumu"
+REGISTRY="soomumu/project"
 
 # 서비스별 이미지 빌드 및 푸시
 if [ -n "$SERVICE" ]; then

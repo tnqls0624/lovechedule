@@ -1,5 +1,4 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Schedule } from '../schema/schedule.schema';
@@ -7,15 +6,10 @@ import { User } from '../../user/schema/user.schema';
 import { Workspace } from '../../workspace/schema/workspace.schema';
 import { FCMService } from './fcm.service';
 import dayjs from 'dayjs';
-import Redlock from 'redlock';
-import Redis from 'ioredis';
 
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
-  private redlock: Redlock | null = null;
-  private REDIS_HOST = process.env.REDIS_HOST;
-  private REDIS_PORT = process.env.REDIS_PORT;
 
   constructor(
     @InjectModel(Schedule.name, 'lovechedule')
@@ -26,123 +20,33 @@ export class NotificationService {
     private workspaceModel: Model<Workspace>,
     private readonly fcmService: FCMService,
     @Inject('CACHE_MANAGER') private cacheManager: any
-  ) {
+  ) {}
+
+  // notification 서버에서 호출될 API - 기념일 알림
+  async getAnniversaryNotifications(body: { today: string, tomorrow: string }) {
+    const { today, tomorrow } = body;
+    
     try {
-      // ioredis 클라이언트 생성
-      const redisClient = new Redis({
-        host: this.REDIS_HOST,
-        port: parseInt(this.REDIS_PORT),
-        retryStrategy: (times) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        }
-      });
-
-      // Redis 연결 이벤트 리스너
-      redisClient.on('connect', () => {
-        this.logger.log('Redis 클라이언트 연결 성공');
-
-        // Redis 연결 성공 후 Redlock 초기화
-        try {
-          this.redlock = new Redlock(
-            // ioredis 클라이언트 사용
-            [redisClient],
-            {
-              driftFactor: 0.01,
-              retryCount: 10, // 재시도 횟수 증가
-              retryDelay: 200, // 재시도 지연 시간
-              retryJitter: 100,
-              automaticExtensionThreshold: 500
-            }
-          );
-
-          // 에러 이벤트 리스너 추가
-          this.redlock.on('error', (error) => {
-            this.logger.error(`Redlock error: ${error}`);
-          });
-
-          this.logger.log('Redlock 초기화 성공');
-        } catch (error) {
-          this.logger.error(`Redlock 초기화 중 오류 발생: ${error}`);
-          this.redlock = null;
-        }
-      });
-
-      // Redis 에러 이벤트 리스너
-      redisClient.on('error', (err) => {
-        this.logger.error(`Redis 클라이언트 에러: ${err}`);
-      });
+      // 기념일 알림 처리
+      const anniversaries = await this.processAnniversaryNotifications(today, tomorrow);
+      return { success: true, data: anniversaries };
     } catch (error) {
-      this.logger.error(`Redis 클라이언트 생성 중 오류 발생: ${error}`);
-      this.redlock = null;
+      this.logger.error(`기념일 알림 처리 중 오류 발생: ${error.message || error}`);
+      return { success: false, error: error.message };
     }
   }
 
-  // 매일 오전 6시에 실행 (한국 시간)
-  @Cron('0 6 * * *', {
-    timeZone: 'Asia/Seoul'
-  })
-  async checkSchedules() {
-    // Redlock이 초기화되지 않은 경우 락 없이 실행
-    if (!this.redlock) {
-      this.logger.warn(
-        'Redlock이 초기화되지 않았습니다. 락 없이 알림 작업을 실행합니다.'
-      );
-      return;
-    }
-
-    const lockKey = 'lock:schedule_notification';
-    let lock;
-
+  // notification 서버에서 호출될 API - 일반 일정 알림
+  async getScheduleNotifications(body: { today: string }) {
+    const { today } = body;
+    
     try {
-      // 60초 동안 유효한 락 획득 시도
-      lock = await this.redlock.acquire([lockKey], 60000);
-      this.logger.log('일정 알림 확인 작업 시작 (락 획득 성공)...');
-
-      await this.executeScheduleNotifications();
+      // 일반 일정 알림 처리
+      const schedules = await this.processRegularScheduleNotifications(today);
+      return { success: true, data: schedules };
     } catch (error) {
-      if (error.name === 'LockError') {
-        this.logger.log(
-          '다른 서버 인스턴스가 이미 일정 알림 작업을 실행 중입니다.'
-        );
-      } else {
-        this.logger.error(
-          `일정 알림 확인 중 오류 발생: ${error.message || error}`
-        );
-
-        // 락 획득 실패 시에도 알림은 보내도록 함
-        this.logger.warn('락 획득에 실패했지만 알림 작업을 계속 진행합니다.');
-        await this.executeScheduleNotifications();
-      }
-    } finally {
-      // 락 해제
-      if (lock) {
-        try {
-          await lock.release();
-          this.logger.log('일정 알림 락 해제 완료');
-        } catch (error) {
-          this.logger.error(`락 해제 중 오류 발생: ${error.message || error}`);
-        }
-      }
-    }
-  }
-
-  // 알림 실행 로직을 별도 메서드로 분리
-  private async executeScheduleNotifications() {
-    try {
-      // 오늘 날짜 (YYYY-MM-DD 형식)
-      const today = dayjs().format('YYYY-MM-DD');
-      const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD');
-
-      // 1. 기념일 알림 처리 (오늘과 내일)
-      await this.processAnniversaryNotifications(today, tomorrow);
-
-      // 2. 일반 일정 알림 처리 (오늘만)
-      await this.processRegularScheduleNotifications(today);
-
-      this.logger.log('일정 알림 확인 작업 완료');
-    } catch (error) {
-      this.logger.error(`알림 처리 중 오류 발생: ${error.message || error}`);
+      this.logger.error(`일반 일정 알림 처리 중 오류 발생: ${error.message || error}`);
+      return { success: false, error: error.message };
     }
   }
 
@@ -238,10 +142,13 @@ export class NotificationService {
           }
         }
       }
+      
+      return anniversaries;
     } catch (error) {
       this.logger.error(
         `기념일 알림 처리 중 오류 발생: ${error.message || error}`
       );
+      throw error;
     }
   }
 
@@ -313,16 +220,27 @@ export class NotificationService {
           }
         }
       }
+      
+      return schedules;
     } catch (error) {
       this.logger.error(
         `일반 일정 알림 처리 중 오류 발생: ${error.message || error}`
       );
+      throw error;
     }
   }
 
   // 테스트용 메서드 (수동으로 알림 확인 실행)
   async manualCheckSchedules() {
-    await this.checkSchedules();
+    const today = dayjs().format('YYYY-MM-DD');
+    const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD');
+    
+    // 1. 기념일 알림 처리 (오늘과 내일)
+    await this.processAnniversaryNotifications(today, tomorrow);
+    
+    // 2. 일반 일정 알림 처리 (오늘만)
+    await this.processRegularScheduleNotifications(today);
+    
     return {
       success: true,
       message: '일정 알림 확인 작업이 수동으로 실행되었습니다.'

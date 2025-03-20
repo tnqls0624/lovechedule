@@ -1,5 +1,6 @@
 import { Module, Provider } from '@nestjs/common';
 import { ScheduleController } from './controller/schedule.controller';
+import { NotificationController } from './controller/notification.controller';
 import { ScheduleService } from './service/schedule.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Schedule, ScheduleSchema } from './schema/schedule.schema';
@@ -23,7 +24,7 @@ const infrastructure: Provider[] = [
 
 const services = [ScheduleService, FCMService, NotificationService];
 
-const controller = [ScheduleController];
+const controller = [ScheduleController, NotificationController];
 
 @Module({
   imports: [

@@ -28,8 +28,7 @@ set_compose_file() {
 # Docker 이미지 빌드 및 푸시 함수
 build_and_push_image() {
     local image_name="$1"
-    local tag="$2"
-    local registry="$3"
+    local registry="$2"
 
     # 서비스별 이미지 처리
     case "$image_name" in
@@ -41,31 +40,35 @@ build_and_push_image() {
             ;;
         "lovechedule-server")
             echo "🚀 서버 애플리케이션을 빌드합니다..."
+            # 태그 설정
+            local tag="lovechedule"
             # 이미지 빌드 전 기존 이미지 제거
-            docker rmi "${registry}/lovechedule-server:${tag}" 2>/dev/null || true
+            docker rmi "${registry}:${tag}" 2>/dev/null || true
             # 강제로 캐시 무시하고 빌드
-            docker build --no-cache --pull -t "${registry}:lovechedule-server-${tag}" ../server
+            docker build --no-cache --pull -t "${registry}:${tag}" ../server
             # 타임스탬프 태그도 함께 생성
-            docker tag "${registry}:lovechedule-server-${tag}" "${registry}:lovechedule-server-$(date +%Y%m%d%H%M%S)"
-            echo "🐳 Docker 이미지를 푸시합니다: ${registry}:lovechedule-server-${tag}"
-            docker push "${registry}:lovechedule-server-${tag}"
+            docker tag "${registry}:${tag}" "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
+            echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"
+            docker push "${registry}:${tag}"
             # 타임스탬프 태그도 푸시
-            docker push "${registry}:lovechedule-server-$(date +%Y%m%d%H%M%S)"
+            docker push "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
             ;;
         "notification-server")
             echo "🚀 알림 서버 애플리케이션을 빌드합니다..."
+            # 태그 설정
+            local tag="notification"
             # 이미지 빌드 전 기존 이미지 제거
-            docker rmi "${registry}/notification-server:${tag}" 2>/dev/null || true
+            docker rmi "${registry}:${tag}" 2>/dev/null || true
             # 서버 앱 빌드
             (cd ../server/notification && npm install && npm run build)
             # 강제로 캐시 무시하고 빌드
-            docker build --no-cache --pull -t "${registry}:notification-server-${tag}" ../server/notification
+            docker build --no-cache --pull -t "${registry}:${tag}" ../server/notification
             # 타임스탬프 태그도 함께 생성
-            docker tag "${registry}:notification-server-${tag}" "${registry}:notification-server-$(date +%Y%m%d%H%M%S)"
-            echo "🐳 Docker 이미지를 푸시합니다: ${registry}:notification-server-${tag}"
-            docker push "${registry}:notification-server-${tag}"
+            docker tag "${registry}:${tag}" "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
+            echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"
+            docker push "${registry}:${tag}"
             # 타임스탬프 태그도 푸시
-            docker push "${registry}:notification-server-$(date +%Y%m%d%H%M%S)"
+            docker push "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
             ;;
         *)
             echo "⚠️ 알 수 없는 서비스입니다: $image_name"
@@ -146,19 +149,16 @@ if ! docker info | grep -q "Swarm: active"; then
     docker swarm init
 fi
 
-# 이미지 태그 및 레지스트리 설정
-# 타임스탬프를 포함한 태그 생성
-IMAGE_TAG="latest"
-TIMESTAMP=$(date +%Y%m%d%H%M%S)
+# 레지스트리 설정
 REGISTRY="soomumu/project"
 
 # 서비스별 이미지 빌드 및 푸시
 if [ -n "$SERVICE" ]; then
-    build_and_push_image "$SERVICE" "$IMAGE_TAG" "$REGISTRY"
+    build_and_push_image "$SERVICE" "$REGISTRY"
 else
     # 전체 서비스 빌드
-    build_and_push_image "lovechedule-server" "$IMAGE_TAG" "$REGISTRY"
-    build_and_push_image "notification-server" "$IMAGE_TAG" "$REGISTRY"
+    build_and_push_image "lovechedule-server" "$REGISTRY"
+    build_and_push_image "notification-server" "$REGISTRY"
 fi
 
 # Compose 파일 설정
@@ -168,10 +168,10 @@ set_compose_file "$ENV"
 if [ "$DEPLOY" = true ]; then
     # 배포 전 이미지 강제 갱신
     echo "🔄 Docker 이미지를 강제로 갱신합니다..."
-    docker pull "${registry}:lovechedule-server-${IMAGE_TAG}" --quiet
+    docker pull "${REGISTRY}:lovechedule" --quiet
     
     if [ "$SERVICE" == "notification-server" ] || [ -z "$SERVICE" ]; then
-        docker pull "${registry}:notification-server-${IMAGE_TAG}" --quiet
+        docker pull "${REGISTRY}:notification" --quiet
     fi
     
     deploy_stack "$STACK_NAME"

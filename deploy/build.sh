@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# 작업 디렉토리 확인 및 설정
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
+echo "✅ 작업 디렉토리: $WORKSPACE_DIR"
+
 # 환경에 따른 docker-compose 파일 설정
 set_compose_file() {
     local env="$1"
@@ -45,12 +50,11 @@ build_and_push_image() {
             # 이미지 빌드 전 기존 이미지 제거 (오류 무시)
             docker rmi "${registry}:${tag}" 2>/dev/null || true
             docker rmi "${registry}:${tag}-$(date +%Y%m%d)*" 2>/dev/null || true
-            # 메인 서버 앱 빌드 전 의존성 설치 확인
-            echo "⏳ 서버 의존성 설치 및 빌드 중..."
-            cd ../server/app && npm ci && npm run build && cd ../../deploy
-            # 강제로 캐시 무시하고 빌드
+            
+            # EC2 환경에서는 npm이 설치되어 있지 않을 수 있으므로 Docker 내에서만 빌드
             echo "🔨 Docker 이미지 빌드 중..."
-            docker build --no-cache --pull -t "${registry}:${tag}" ../server/app
+            docker build --no-cache --pull -t "${registry}:${tag}" "${WORKSPACE_DIR}/server/app"
+            
             # 타임스탬프 태그도 함께 생성
             local timestamp=$(date +%Y%m%d%H%M%S)
             docker tag "${registry}:${tag}" "${registry}:${tag}-${timestamp}"
@@ -67,12 +71,11 @@ build_and_push_image() {
             # 이미지 빌드 전 기존 이미지 제거 (오류 무시)
             docker rmi "${registry}:${tag}" 2>/dev/null || true
             docker rmi "${registry}:${tag}-$(date +%Y%m%d)*" 2>/dev/null || true
-            # 서버 앱 빌드 전 의존성 설치 확인
-            echo "⏳ 알림 서버 의존성 설치 및 빌드 중..."
-            cd ../server/notification && npm ci && npm run build && cd ../../deploy
-            # 강제로 캐시 무시하고 빌드
+            
+            # EC2 환경에서는 npm이 설치되어 있지 않을 수 있으므로 Docker 내에서만 빌드
             echo "🔨 Docker 이미지 빌드 중..."
-            docker build --no-cache --pull -t "${registry}:${tag}" ../server/notification
+            docker build --no-cache --pull -t "${registry}:${tag}" "${WORKSPACE_DIR}/server/notification"
+            
             # 타임스탬프 태그도 함께 생성
             local timestamp=$(date +%Y%m%d%H%M%S)
             docker tag "${registry}:${tag}" "${registry}:${tag}-${timestamp}"
@@ -88,6 +91,149 @@ build_and_push_image() {
     esac
 }
 
+# Docker Compose 디렉토리 확인 및 생성
+check_compose_dir() {
+    # docker-compose 디렉토리가 존재하는지 확인
+    if [ ! -d "${SCRIPT_DIR}/docker-compose" ]; then
+        echo "⚠️ docker-compose 디렉토리가 없습니다. 생성합니다..."
+        mkdir -p "${SCRIPT_DIR}/docker-compose"
+    fi
+    
+    # base.yaml 파일이 존재하는지 확인
+    if [ ! -f "${SCRIPT_DIR}/docker-compose/base.yaml" ]; then
+        echo "⚠️ base.yaml 파일이 없습니다. 생성합니다..."
+        create_base_yaml
+    fi
+    
+    # syslog-linux.yaml 파일이 존재하는지 확인
+    if [ ! -f "${SCRIPT_DIR}/docker-compose/syslog-linux.yaml" ]; then
+        echo "⚠️ syslog-linux.yaml 파일이 없습니다. 생성합니다..."
+        create_syslog_yaml
+    fi
+}
+
+# base.yaml 파일 생성
+create_base_yaml() {
+    cat > "${SCRIPT_DIR}/docker-compose/base.yaml" << 'EOF'
+version: "3.8"
+
+services:
+  # Traefik 리버스 프록시 서비스
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--api.insecure=true" # 대시보드 활성화 (보안 없음)
+      - "--providers.docker=true" # Docker 제공자 활성화
+      - "--providers.docker.swarmMode=true" # Swarm 모드 지원
+      - "--providers.docker.exposedbydefault=false" # 기본적으로 서비스 노출 방지
+      - "--entrypoints.web.address=:80" # HTTP 엔트리포인트
+    ports:
+      - "80:80" # HTTP 포트
+      - "8080:8080" # Traefik Dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock" # Docker 소켓
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager # Swarm 매니저 노드에서 실행
+    networks:
+      - lovechedule-network
+
+  # Redis 서비스
+  redis:
+    image: redis:latest
+    container_name: redis
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - lovechedule-network
+
+  # lovechedule 애플리케이션
+  lovechedule-server:
+    image: soomumu/project:lovechedule
+    environment:
+      - MONGO_URL=mongodb://root:1234@mongodb:27017/lovechedule?authSource=admin
+      - JWT_ACCESS_TOKEN_SECRET=secret
+      - JWT_ACCESS_TOKEN_EXPIRATION_TIME=365d
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_EXPIRED_AT=0
+      - WEATHER_API_KEY=ec379cdcda47660851b8bd47f8432f8b
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+      labels:
+        # /app 경로 처리
+        - "traefik.enable=true"
+        - "traefik.http.routers.lovechedule.rule=Host(`lovechedule.com`) && PathPrefix(`/app`)"
+        - "traefik.http.routers.lovechedule.entrypoints=web"
+        # 내부 서비스 포트 지정
+        - "traefik.http.services.lovechedule-service.loadbalancer.server.port=3000" # 내부 서비스 포트
+    networks:
+      - lovechedule-network
+
+  # 알림 서버 애플리케이션
+  notification-server:
+    image: soomumu/project:notification
+    environment:
+      - API_URL=http://lovechedule-server:3000
+      - API_KEY=your-api-key-here
+      - NODE_ENV=production
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.notification.rule=Host(`lovechedule.com`) && PathPrefix(`/notification`)"
+        - "traefik.http.routers.notification.entrypoints=web"
+        - "traefik.http.services.notification-service.loadbalancer.server.port=3100"
+    networks:
+      - lovechedule-network
+
+networks:
+  lovechedule-network:
+    driver: overlay
+EOF
+}
+
+# syslog-linux.yaml 파일 생성
+create_syslog_yaml() {
+    cat > "${SCRIPT_DIR}/docker-compose/syslog-linux.yaml" << 'EOF'
+version: "3.8"
+
+services:
+  # 로깅 설정 추가
+  traefik:
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "traefik"
+
+  lovechedule-server:
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "lovechedule-server"
+
+  notification-server:
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "notification-server"
+EOF
+}
+
 # Docker Swarm 스택 배포 함수
 deploy_stack() {
     local stack_name="$1"
@@ -95,7 +241,7 @@ deploy_stack() {
     # 서비스 업데이트 전 이미지 강제 갱신
     docker service update --force --image-pull-policy always $(docker stack services -q "$stack_name") 2>/dev/null || true
     # 스택 배포
-    docker stack deploy --prune --with-registry-auth -c ./docker-compose/base.yaml $(printf -- '-c %s ' "${COMPOSE_FILE[@]}") "$stack_name"
+    docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
     echo "✅ Docker Swarm 스택 배포가 완료되었습니다."
 }
 
@@ -114,10 +260,14 @@ check_services() {
         image=$(echo "$line" | awk '{print $5}')
 
         # 배포 시간 확인
-        updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}')
+        updated_at=$(docker service inspect "$service_id" --format '{{.UpdatedAt}}' 2>/dev/null)
         if [[ -n "$updated_at" ]]; then
-            # UTC 시간을 KST로 변환
-            deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S" --utc --date '+9 hours')
+            # UTC 시간을 KST로 변환 (서버 환경에 따라 다를 수 있음)
+            if command -v date > /dev/null 2>&1; then
+                deploy_time=$(date -d "$(echo "$updated_at" | sed 's/ +0000 UTC//')" +"%Y-%m-%d %H:%M:%S" 2>/dev/null) || deploy_time="Unknown format"
+            else
+                deploy_time="$updated_at"
+            fi
         else
             deploy_time="Unknown"
         fi
@@ -158,8 +308,11 @@ done
 # Swarm 초기화 확인 및 설정
 if ! docker info | grep -q "Swarm: active"; then
     echo "🚀 Swarm이 활성화되지 않았습니다. Swarm을 초기화합니다..."
-    docker swarm init
+    docker swarm init --advertise-addr $(hostname -i) || echo "⚠️ Swarm 초기화 실패. 이미 초기화되었거나 권한이 없을 수 있습니다."
 fi
+
+# Docker Compose 디렉토리 및 파일 확인
+check_compose_dir
 
 # 레지스트리 설정
 REGISTRY="soomumu/project"

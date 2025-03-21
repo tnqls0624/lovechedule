@@ -46,6 +46,10 @@ EOF
   else
     echo "✅ Firebase 키 파일이 존재합니다: $firebase_key"
   fi
+  
+  # 파일 권한 설정 (Docker 이미지 빌드 중 읽기 가능하도록)
+  chmod 644 "$firebase_key" 2>/dev/null || true
+  echo "✅ Firebase 키 파일 권한을 설정했습니다."
 }
 
 # 환경에 따른 docker-compose 파일 설정

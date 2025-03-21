@@ -6,19 +6,27 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm ci
 
+# 소스 코드 복사 전에 asset 디렉토리 생성
+RUN mkdir -p src/asset
+
 # 소스 코드 복사
 COPY . .
 
-# Firebase 키 파일 디렉토리 생성
+# Firebase 키 파일 확인 및 경고 출력 (빌드는 계속 진행)
+RUN if [ ! -f src/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json ]; then \
+    echo "WARNING: Firebase key file is missing! Create a file at src/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json"; \
+    echo "Creating empty placeholder file..."; \
+    echo "{}" > src/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json; \
+    fi
+
+# NestJS 빌드 전 dist 디렉토리 생성 (asset 복사 위치 확보)
 RUN mkdir -p dist/asset
 
 # 빌드 실행
 RUN npm run build
 
-# Firebase 키 파일이 위치한 디렉토리가 빌드 중에 유지되도록 확인
-RUN if [ -f src/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json ]; then \
-    cp src/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json dist/asset/; \
-    fi
+# 빌드 후 asset 디렉토리 확인 (디버깅용)
+RUN ls -la dist/asset || echo "Warning: dist/asset directory not found or empty"
 
 # 프로덕션 의존성만 남기기
 RUN npm prune --production

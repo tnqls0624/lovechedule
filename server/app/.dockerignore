@@ -11,6 +11,7 @@ node_modules
 
 # production
 dist
+!dist/asset
 
 # misc
 .DS_Store
@@ -22,3 +23,7 @@ yarn-error.log*
 .git
 .env
 .env.*
+
+# Firebase 키 파일은 제외하지 않음
+!src/asset
+!src/asset/**

@@ -21,10 +21,7 @@ check_firebase_key() {
       mkdir -p "$firebase_dir"
       echo "✅ Firebase 키 디렉토리를 생성했습니다: $firebase_dir"
     fi
-           
-      echo "✅ 임시 Firebase 키 파일을 생성했습니다: $firebase_key"
-      echo "❗ 이 키는 샘플이므로 실제 사용 전에 반드시 교체해 주세요!"
-    fi
+    
   else
     echo "✅ Firebase 키 파일이 존재합니다: $firebase_key"
   fi

@@ -9,8 +9,8 @@ RUN npm ci --only=production
 # 소스 코드 복사
 COPY . .
 
-# 필요한 경우 빌드 (dist 폴더가 포함된 경우엔 생략 가능)
-# RUN npm run build
+# 필요한 경우 빌드
+RUN npm run build
 
 ENV NODE_ENV=production
 ENV TZ=Asia/Seoul

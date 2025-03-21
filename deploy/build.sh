@@ -44,8 +44,10 @@ build_and_push_image() {
             local tag="lovechedule"
             # 이미지 빌드 전 기존 이미지 제거
             docker rmi "${registry}:${tag}" 2>/dev/null || true
+            # 메인 서버 앱 빌드
+            (cd ../server/app && npm install && npm run build)
             # 강제로 캐시 무시하고 빌드
-            docker build --no-cache --pull -t "${registry}:${tag}" ../server
+            docker build --no-cache --pull -t "${registry}:${tag}" ../server/app
             # 타임스탬프 태그도 함께 생성
             docker tag "${registry}:${tag}" "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
             echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"

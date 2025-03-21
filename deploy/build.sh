@@ -21,25 +21,7 @@ check_firebase_key() {
       mkdir -p "$firebase_dir"
       echo "✅ Firebase 키 디렉토리를 생성했습니다: $firebase_dir"
     fi
-    
-    # Firebase 키 파일이 없는 경우 샘플 파일 생성 (실제 사용에는 정확한 Firebase 키가 필요함)
-    if [ ! -f "$firebase_key" ]; then
-      echo "⚠️ 임시 Firebase 키 파일을 생성합니다. 실제 사용을 위해 올바른 키 파일로 교체해 주세요."
-      cat > "$firebase_key" << 'EOF'
-{
-  "type": "service_account",
-  "project_id": "lovechedule",
-  "private_key_id": "sample-key-id",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nSample key content\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-fbsvc@lovechedule.iam.gserviceaccount.com",
-  "client_id": "sample-client-id",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40lovechedule.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
-}
-EOF
+           
       echo "✅ 임시 Firebase 키 파일을 생성했습니다: $firebase_key"
       echo "❗ 이 키는 샘플이므로 실제 사용 전에 반드시 교체해 주세요!"
     fi

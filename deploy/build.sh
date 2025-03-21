@@ -5,6 +5,49 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
 echo "✅ 작업 디렉토리: $WORKSPACE_DIR"
 
+# Firebase 설정 파일 확인 및 생성
+check_firebase_key() {
+  local firebase_dir="${WORKSPACE_DIR}/server/app/src/asset"
+  local firebase_key="${firebase_dir}/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json"
+  
+  if [ ! -f "$firebase_key" ]; then
+    echo "⚠️ Firebase 인증 키 파일이 없습니다: $firebase_key"
+    echo "❗ Firebase 키 파일을 생성하거나 복사해 주세요."
+    echo "❗ Firebase 콘솔에서 서비스 계정 키를 다운로드하고 다음 경로에 저장해 주세요:"
+    echo "❗ $firebase_key"
+    
+    # 디렉토리가 없으면 생성
+    if [ ! -d "$firebase_dir" ]; then
+      mkdir -p "$firebase_dir"
+      echo "✅ Firebase 키 디렉토리를 생성했습니다: $firebase_dir"
+    fi
+    
+    # Firebase 키 파일이 없는 경우 샘플 파일 생성 (실제 사용에는 정확한 Firebase 키가 필요함)
+    if [ ! -f "$firebase_key" ]; then
+      echo "⚠️ 임시 Firebase 키 파일을 생성합니다. 실제 사용을 위해 올바른 키 파일로 교체해 주세요."
+      cat > "$firebase_key" << 'EOF'
+{
+  "type": "service_account",
+  "project_id": "lovechedule",
+  "private_key_id": "sample-key-id",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nSample key content\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@lovechedule.iam.gserviceaccount.com",
+  "client_id": "sample-client-id",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40lovechedule.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
+EOF
+      echo "✅ 임시 Firebase 키 파일을 생성했습니다: $firebase_key"
+      echo "❗ 이 키는 샘플이므로 실제 사용 전에 반드시 교체해 주세요!"
+    fi
+  else
+    echo "✅ Firebase 키 파일이 존재합니다: $firebase_key"
+  fi
+}
+
 # 환경에 따른 docker-compose 파일 설정
 set_compose_file() {
     local env="$1"
@@ -45,6 +88,16 @@ build_and_push_image() {
             ;;
         "lovechedule-server")
             echo "🚀 서버 애플리케이션을 빌드합니다..."
+            
+            # Firebase 키 파일이 있는지 확인
+            local firebase_dir="${WORKSPACE_DIR}/server/app/src/asset"
+            local firebase_key="${firebase_dir}/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json"
+            
+            if [ ! -f "$firebase_key" ]; then
+                echo "⚠️ Firebase 키 파일이 없습니다. 다시 확인합니다."
+                check_firebase_key
+            fi
+            
             # 태그 설정
             local tag="lovechedule"
             # 이미지 빌드 전 기존 이미지 제거 (오류 무시)
@@ -296,6 +349,9 @@ STACK_NAME="$1"  # 첫 번째 인수는 스택 이름
 ENV="$2"         # 두 번째 인수는 환경 이름
 SERVICE="${3:-}"  # 세 번째 인수는 서비스 이름 (옵션)
 shift 3          # 첫 세 개의 인수 제거
+
+# Firebase 키 파일 확인
+check_firebase_key
 
 # '--deploy' 여부 확인
 DEPLOY=false

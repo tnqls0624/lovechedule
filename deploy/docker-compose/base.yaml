@@ -62,6 +62,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_EXPIRED_AT=0
       - WEATHER_API_KEY=ec379cdcda47660851b8bd47f8432f8b
+      - FIREBASE_KEY_PATH=/usr/src/app/dist/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json
     deploy:
       replicas: 2
       restart_policy:

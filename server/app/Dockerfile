@@ -25,6 +25,9 @@ RUN mkdir -p dist/asset
 # 빌드 실행
 RUN npm run build
 
+# Firebase 키 파일을 dist/asset 디렉토리로 복사
+RUN cp src/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json dist/asset/
+
 # 빌드 후 asset 디렉토리 확인 (디버깅용)
 RUN ls -la dist/asset || echo "Warning: dist/asset directory not found or empty"
 

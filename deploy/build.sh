@@ -22,6 +22,7 @@ check_firebase_key() {
       echo "✅ Firebase 키 디렉토리를 생성했습니다: $firebase_dir"
     fi
     
+    exit 1
   else
     echo "✅ Firebase 키 파일이 존재합니다: $firebase_key"
   fi

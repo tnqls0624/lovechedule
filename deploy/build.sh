@@ -42,35 +42,45 @@ build_and_push_image() {
             echo "🚀 서버 애플리케이션을 빌드합니다..."
             # 태그 설정
             local tag="lovechedule"
-            # 이미지 빌드 전 기존 이미지 제거
+            # 이미지 빌드 전 기존 이미지 제거 (오류 무시)
             docker rmi "${registry}:${tag}" 2>/dev/null || true
-            # 메인 서버 앱 빌드
-            (cd ../server/app && npm install && npm run build)
+            docker rmi "${registry}:${tag}-$(date +%Y%m%d)*" 2>/dev/null || true
+            # 메인 서버 앱 빌드 전 의존성 설치 확인
+            echo "⏳ 서버 의존성 설치 및 빌드 중..."
+            cd ../server/app && npm ci && npm run build && cd ../../deploy
             # 강제로 캐시 무시하고 빌드
+            echo "🔨 Docker 이미지 빌드 중..."
             docker build --no-cache --pull -t "${registry}:${tag}" ../server/app
             # 타임스탬프 태그도 함께 생성
-            docker tag "${registry}:${tag}" "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
+            local timestamp=$(date +%Y%m%d%H%M%S)
+            docker tag "${registry}:${tag}" "${registry}:${tag}-${timestamp}"
             echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"
             docker push "${registry}:${tag}"
             # 타임스탬프 태그도 푸시
-            docker push "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
+            docker push "${registry}:${tag}-${timestamp}"
+            echo "✅ 서버 이미지 빌드 및 푸시 완료!"
             ;;
         "notification-server")
             echo "🚀 알림 서버 애플리케이션을 빌드합니다..."
             # 태그 설정
             local tag="notification"
-            # 이미지 빌드 전 기존 이미지 제거
+            # 이미지 빌드 전 기존 이미지 제거 (오류 무시)
             docker rmi "${registry}:${tag}" 2>/dev/null || true
-            # 서버 앱 빌드
-            (cd ../server/notification && npm install && npm run build)
+            docker rmi "${registry}:${tag}-$(date +%Y%m%d)*" 2>/dev/null || true
+            # 서버 앱 빌드 전 의존성 설치 확인
+            echo "⏳ 알림 서버 의존성 설치 및 빌드 중..."
+            cd ../server/notification && npm ci && npm run build && cd ../../deploy
             # 강제로 캐시 무시하고 빌드
+            echo "🔨 Docker 이미지 빌드 중..."
             docker build --no-cache --pull -t "${registry}:${tag}" ../server/notification
             # 타임스탬프 태그도 함께 생성
-            docker tag "${registry}:${tag}" "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
+            local timestamp=$(date +%Y%m%d%H%M%S)
+            docker tag "${registry}:${tag}" "${registry}:${tag}-${timestamp}"
             echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"
             docker push "${registry}:${tag}"
             # 타임스탬프 태그도 푸시
-            docker push "${registry}:${tag}-$(date +%Y%m%d%H%M%S)"
+            docker push "${registry}:${tag}-${timestamp}"
+            echo "✅ 알림 서버 이미지 빌드 및 푸시 완료!"
             ;;
         *)
             echo "⚠️ 알 수 없는 서비스입니다: $image_name"
@@ -170,10 +180,10 @@ set_compose_file "$ENV"
 if [ "$DEPLOY" = true ]; then
     # 배포 전 이미지 강제 갱신
     echo "🔄 Docker 이미지를 강제로 갱신합니다..."
-    docker pull "${REGISTRY}:lovechedule" --quiet
+    docker pull "${REGISTRY}:lovechedule" --quiet || echo "⚠️ 메인 서버 이미지 갱신 실패, 계속 진행합니다."
     
     if [ "$SERVICE" == "notification-server" ] || [ -z "$SERVICE" ]; then
-        docker pull "${REGISTRY}:notification" --quiet
+        docker pull "${REGISTRY}:notification" --quiet || echo "⚠️ 알림 서버 이미지 갱신 실패, 계속 진행합니다."
     fi
     
     deploy_stack "$STACK_NAME"

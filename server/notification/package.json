@@ -28,6 +28,8 @@
     "@nestjs/websockets": "^11.0.12",
     "@swc/cli": "^0.6.0",
     "axios": "^1.6.7",
+    "class-transformer": "^0.5.1",
+    "dayjs": "^1.11.13",
     "firebase-admin": "^13.2.0",
     "install": "^0.13.0",
     "mongoose": "^8.12.2",

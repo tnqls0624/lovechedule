@@ -1,28 +1,81 @@
-import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Expose, Transform } from "class-transformer";
 import { Document, Types } from "mongoose";
 
-@Schema()
-export class User extends Document {
-  @Prop({ required: true })
-  name: string;
+export type UserDocument = User & Document<Types.ObjectId>;
 
-  @Prop()
+@Schema({
+  timestamps: true,
+  collection: "users",
+})
+export class User {
+  @Expose()
+  @Transform(({ obj }) => obj._id.toString())
+  _id: Types.ObjectId;
+
+  @Expose()
+  @Prop({ required: true, type: String, unique: true })
   email: string;
 
-  @Prop()
+  @Expose()
+  @Prop({ required: true, type: String })
+  name: string;
+
+  @Expose()
+  @Prop({
+    type: String,
+  })
+  login_type: string;
+
+  @Expose()
+  @Prop({
+    type: String,
+  })
+  emoji: string;
+
+  @Expose()
+  @Prop({
+    type: String,
+  })
+  gender: string;
+
+  @Expose()
+  @Prop({
+    type: String,
+  })
+  birthday: string;
+
+  @Expose()
+  @Prop({ type: String, required: true, index: true })
+  invite_code: string;
+
+  @Expose()
+  @Prop({ type: String, required: false, index: true })
   fcm_token: string;
 
-  @Prop({ default: true })
+  @Expose()
+  @Prop({ type: Boolean, default: true })
   push_enabled: boolean;
 
-  @Prop({ default: true })
+  @Expose()
+  @Prop({ type: Boolean, default: true })
   schedule_alarm: boolean;
 
-  @Prop({ default: true })
+  @Expose()
+  @Prop({ type: Boolean, default: true })
   anniversary_alarm: boolean;
 
-  @Prop({ type: Types.ObjectId, ref: "Workspace" })
-  workspaceId: Types.ObjectId;
+  // @Expose()
+  // @Prop({ type: Boolean, default: true })
+  // message_alarm: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.virtual("workspaces", {
+  ref: "Workspace",
+  localField: "_id",
+  foreignField: "users",
+});
+UserSchema.set("toObject", { virtuals: true });
+UserSchema.set("toJSON", { virtuals: true });

@@ -91,16 +91,25 @@ export class WorkspaceService {
   //   }
   // }
 
-  async findOneById(_id: string): Promise<Workspace> {
+  async findOneById(
+    _id: string,
+    options?: { populate?: string[] }
+  ): Promise<Workspace> {
     try {
       const workspace = await this.workspaceRepository.findOneById(
-        new Types.ObjectId(String(_id))
+        new Types.ObjectId(_id),
+        options
       );
-      if (!workspace) throw new NotFoundException('no workspace');
+      if (!workspace) {
+        throw new HttpException('workspace not found', 404);
+      }
       return workspace;
     } catch (e) {
       this.logger.error(e);
-      throw new HttpException(e, e.status);
+      throw new HttpException(
+        e.message || 'Internal server error',
+        e.status || 500
+      );
     }
   }
 }

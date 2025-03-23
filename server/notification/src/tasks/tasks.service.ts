@@ -7,6 +7,7 @@ import { Model } from "mongoose";
 import { User } from "../schemas/user.schema";
 import { Schedule } from "../schemas/schedule.schema";
 import { Workspace } from "../schemas/workspace.schema";
+import dayjs from "dayjs";
 
 @Injectable()
 export class TasksService {
@@ -111,20 +112,33 @@ export class TasksService {
     try {
       this.logger.log(`기념일 알림 처리: ${today}, ${tomorrow}`);
 
-      // 모든 워크스페이스 조회
-      const workspaces = await this.workspaceModel.find().exec();
-      let totalNotifications = 0;
-
-      for (const workspace of workspaces) {
-        // 워크스페이스의 모든 사용자 조회 (푸시 알림과 기념일 알림이 활성화된 사용자만)
-        const users = await this.userModel
-          .find({
-            workspaceId: workspace._id,
+      // 모든 워크스페이스 조회하고 users 필드를 populate
+      const workspaces = await this.workspaceModel
+        .find()
+        .populate({
+          path: "users",
+          match: {
             push_enabled: true,
             anniversary_alarm: true,
             fcm_token: { $exists: true, $ne: null },
-          })
-          .exec();
+          },
+        })
+        .exec();
+
+      let totalNotifications = 0;
+
+      for (const workspace of workspaces) {
+        // populate된 users 배열에서 조건에 맞는 사용자만 필터링
+        const users = workspace.users.filter((user) => {
+          // User 타입으로 캐스팅하여 타입 체크 수행
+          const userObj = user as any;
+          return (
+            userObj.push_enabled &&
+            userObj.anniversary_alarm &&
+            userObj.fcm_token &&
+            userObj.fcm_token.trim() !== ""
+          );
+        });
 
         if (users.length === 0) continue;
 
@@ -135,9 +149,11 @@ export class TasksService {
         // 각 기념일에 대해 알림 데이터 준비
         for (const anniversary of anniversaries) {
           for (const user of users) {
+            // User 타입으로 캐스팅
+            const userObj = user as any;
             totalNotifications++;
             await this.sendPushNotification(
-              user.fcm_token,
+              userObj.fcm_token,
               "기념일 알림",
               `내일은 ${anniversary.title} 기념일입니다.`,
               {
@@ -166,36 +182,56 @@ export class TasksService {
       this.logger.log(`일정 알림 처리: ${today}`);
 
       // 모든 워크스페이스 조회
-      const workspaces = await this.workspaceModel.find().exec();
-      let totalNotifications = 0;
-
-      for (const workspace of workspaces) {
-        // 워크스페이스의 모든 사용자 조회 (푸시 알림이 활성화된 사용자만)
-        const users = await this.userModel
-          .find({
-            workspaceId: workspace._id,
+      const workspaces = await this.workspaceModel
+        .find()
+        .populate({
+          path: "users",
+          match: {
             push_enabled: true,
             schedule_alarm: true,
             fcm_token: { $exists: true, $ne: null },
-          })
-          .exec();
+          },
+        })
+        .exec();
+
+      let totalNotifications = 0;
+
+      for (const workspace of workspaces) {
+        // populate된 users 배열에서 조건에 맞는 사용자만 필터링
+        const users = workspace.users.filter((user) => {
+          // User 타입으로 캐스팅하여 타입 체크 수행
+          const userObj = user as any;
+          return (
+            userObj.push_enabled && userObj.schedule_alarm && userObj.fcm_token
+          );
+        });
 
         if (users.length === 0) continue;
 
         // 오늘 날짜의 스케줄 조회
-        const todayDate = new Date(today);
+        const todayDate = dayjs(today).startOf("day").toDate();
         todayDate.setHours(0, 0, 0, 0);
 
-        const tomorrowDate = new Date(todayDate);
-        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const tomorrowDate = dayjs(todayDate).add(1, "day").toDate();
 
+        // workspace._id에 해당하는 일정 조회
         const schedules = await this.scheduleModel
           .find({
-            workspaceId: workspace._id,
-            date: {
-              $gte: todayDate,
-              $lt: tomorrowDate,
-            },
+            workspace: workspace._id,
+            $or: [
+              {
+                start_date: {
+                  $gte: todayDate,
+                  $lt: tomorrowDate,
+                },
+              },
+              {
+                end_date: {
+                  $gte: todayDate,
+                  $lt: tomorrowDate,
+                },
+              },
+            ],
           })
           .exec();
 
@@ -204,9 +240,11 @@ export class TasksService {
         // 각 스케줄에 대해 알림 전송
         for (const schedule of schedules) {
           for (const user of users) {
+            // User 타입으로 캐스팅
+            const userObj = user as any;
             totalNotifications++;
             await this.sendPushNotification(
-              user.fcm_token,
+              userObj.fcm_token,
               "오늘의 일정 알림",
               `${schedule.title} 일정이 있습니다.`,
               {
@@ -272,7 +310,7 @@ export class TasksService {
    * 현재 날짜를 YYYY-MM-DD 형식으로 반환
    */
   private getTodayDate(): string {
-    const today = new Date();
+    const today = dayjs().toDate();
     return this.formatDate(today);
   }
 
@@ -280,8 +318,7 @@ export class TasksService {
    * 내일 날짜를 YYYY-MM-DD 형식으로 반환
    */
   private getTomorrowDate(): string {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrow = dayjs().add(1, "day").toDate();
     return this.formatDate(tomorrow);
   }
 
@@ -289,9 +326,6 @@ export class TasksService {
    * 날짜를 YYYY-MM-DD 형식으로 변환
    */
   private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return dayjs(date).format("YYYY-MM-DD");
   }
 }

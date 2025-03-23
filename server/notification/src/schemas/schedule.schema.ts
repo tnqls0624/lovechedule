@@ -1,19 +1,73 @@
-import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
+import { Expose, Transform, Type } from "class-transformer";
+import { User } from "./user.schema";
+import { Workspace } from "./workspace.schema";
 
-@Schema()
-export class Schedule extends Document {
-  @Prop({ required: true })
+export type ScheduleDocument = Schedule & Document<Types.ObjectId>;
+
+@Schema({
+  timestamps: true,
+  collection: "schedules",
+})
+export class Schedule {
+  @Expose()
+  @Transform(({ obj }) => obj._id.toString())
+  _id: Types.ObjectId;
+
+  @Expose()
+  @Prop({ required: true, type: String })
   title: string;
 
-  @Prop()
-  description: string;
+  @Expose()
+  @Prop({ type: String })
+  memo: string;
 
-  @Prop({ required: true })
-  date: Date;
+  @Expose()
+  @Prop({ required: true, type: Boolean, default: false })
+  is_anniversary: boolean;
 
+  @Expose()
+  @Prop({ required: true, type: String })
+  start_date: string;
+
+  @Expose()
+  @Prop({ required: true, type: String })
+  end_date: string;
+
+  @Expose()
+  @Prop({ type: String, enum: ["none", "monthly", "yearly"], default: "none" })
+  repeat_type: "none" | "monthly" | "yearly";
+
+  // @Expose()
+  // @Prop({ required: true, type: String })
+  // alram_date: string;
+
+  @Expose()
+  @Type(() => User)
+  @Prop({
+    type: [{ type: Types.ObjectId, ref: "User" }],
+    default: [],
+  })
+  participants: string[];
+
+  // @Expose()
+  // @Type(() => Tag)
+  // @Prop({
+  //   type: [
+  //     {
+  //       color: { type: String, required: true },
+  //       name: { type: String, required: true }
+  //     }
+  //   ],
+  //   default: []
+  // })
+  // tags: Tag[];
+
+  @Expose()
+  @Type(() => Workspace)
   @Prop({ type: Types.ObjectId, ref: "Workspace" })
-  workspaceId: Types.ObjectId;
+  workspace: Types.ObjectId;
 }
 
 export const ScheduleSchema = SchemaFactory.createForClass(Schedule);

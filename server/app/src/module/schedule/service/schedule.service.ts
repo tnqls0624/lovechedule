@@ -291,9 +291,10 @@ export class ScheduleService implements OnModuleInit {
         body
       );
 
-      // 워크스페이스에서 유저 정보 가져오기
+      // 워크스페이스에서 유저 정보 가져오기 (users 필드 populate)
       const workspace = await this.workspaceRepository.findOneById(
-        new Types.ObjectId(_id)
+        new Types.ObjectId(_id),
+        { populate: ['users'] }
       );
 
       if (!workspace) {
@@ -306,9 +307,34 @@ export class ScheduleService implements OnModuleInit {
       for (const workspaceUser of workspace.users) {
         const userObj = workspaceUser as any; // 타입 캐스팅
 
+        // MongoDB에서 populate된 유저 객체인지 확인
+        if (typeof userObj !== 'object' || !userObj) {
+          this.logger.warn(
+            `유효하지 않은 유저 객체: ${JSON.stringify(workspaceUser)}`
+          );
+          continue;
+        }
+
+        // 워크스페이스 유저 정보 디버깅
+        this.logger.debug(
+          `워크스페이스 유저 정보: ${JSON.stringify({
+            id: userObj._id,
+            name: userObj.name,
+            fcm_token: userObj.fcm_token ? '있음' : '없음',
+            push_enabled: userObj.push_enabled,
+            alarm_type: body.is_anniversary
+              ? 'anniversary_alarm'
+              : 'schedule_alarm',
+            alarm_enabled: body.is_anniversary
+              ? userObj.anniversary_alarm
+              : userObj.schedule_alarm
+          })}`
+        );
+
         // 알림 조건 확인
         if (
           userObj.fcm_token &&
+          userObj.fcm_token.trim() !== '' && // FCM 토큰이 빈 문자열이 아닌지 확인
           userObj.push_enabled &&
           (body.is_anniversary
             ? userObj.anniversary_alarm

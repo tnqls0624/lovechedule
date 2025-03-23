@@ -33,6 +33,7 @@ async function bootstrap() {
   notification.setGlobalPrefix(notification_prefix);
 
   setupSwagger(notification);
+
   notification.enableCors({
     origin: true,
     credentials: true,
@@ -60,7 +61,7 @@ function setupSwagger(app: INestApplication) {
     .setVersion("1.0")
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api", app, document);
+  SwaggerModule.setup("notification/api", app, document);
 }
 
 bootstrap();

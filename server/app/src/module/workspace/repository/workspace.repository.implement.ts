@@ -49,12 +49,26 @@ export class WorkspaceRepositoryImplement implements WorkspaceRepository {
   //     .exec();
   // }
 
-  findOneById(_id: Types.ObjectId): Promise<Workspace> {
-    return this.workspace_model
-      .findById({ _id })
-      .populate({ path: 'users', model: 'User' })
-      .populate({ path: 'master', model: 'User' })
-      .exec();
+  findOneById(
+    _id: Types.ObjectId,
+    options?: { populate?: string[] }
+  ): Promise<Workspace> {
+    let query = this.workspace_model.findById({ _id });
+
+    // 기본적으로 항상 populate할 필드
+    query = query.populate({ path: 'master', model: 'User' });
+
+    // options.populate가 있으면 해당 필드들을 추가로 populate
+    if (options?.populate) {
+      if (options.populate.includes('users')) {
+        query = query.populate({ path: 'users', model: 'User' });
+      }
+    } else {
+      // 기존 동작 유지: users도 기본적으로 populate
+      query = query.populate({ path: 'users', model: 'User' });
+    }
+
+    return query.exec();
   }
 
   // findAnniversaryById(_id: Types.ObjectId): Promise<Workspace> {

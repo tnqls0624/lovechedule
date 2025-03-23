@@ -25,13 +25,6 @@ export class NotificationService {
   async sendNotification(
     request: NotificationRequest
   ): Promise<NotificationResponse> {
-    // 요청 객체의 각 필드 개별적으로 로깅
-    this.logger.log(`gRPC 알림 요청 수신:`);
-    this.logger.log(`- FCM 토큰: "${request.fcm_token}"`);
-    this.logger.log(`- 제목: "${request.title}"`);
-    this.logger.log(`- 내용: "${request.body}"`);
-    this.logger.log(`- 데이터: ${JSON.stringify(request.data)}`);
-
     try {
       // FCM 토큰 유효성 검사
       if (!request.fcm_token || request.fcm_token.trim() === "") {

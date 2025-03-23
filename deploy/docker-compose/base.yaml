@@ -98,6 +98,7 @@ services:
         - "traefik.http.routers.notification.rule=Host(`lovechedule.com`) && PathPrefix(`/notification`)"
         - "traefik.http.routers.notification.entrypoints=web"
         - "traefik.http.services.notification-service.loadbalancer.server.port=3100"
+        - "traefik.http.services.notification-service.loadbalancer.server.port=9000"
     networks:
       - lovechedule-network
 

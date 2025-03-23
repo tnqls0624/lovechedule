@@ -23,9 +23,6 @@ RUN if [ ! -f src/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json ]; t
 # 빌드 실행 (병렬 처리로 속도 개선)
 RUN npm run build --max-old-space-size=2048
 
-# Firebase 키 파일을 dist/asset 디렉토리로 복사
-RUN cp src/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json dist/asset/ && \
-    ls -la dist/asset
 
 # 프로덕션 의존성만 남기기 (더 작은 이미지 크기)
 RUN npm prune --production --no-audit
@@ -33,10 +30,13 @@ RUN npm prune --production --no-audit
 # 환경설정
 ENV NODE_ENV=production \
     TZ=Asia/Seoul \
-    PORT=3000
+    PORT=3000 \
+    NOTIFICATION_GRPC_URL=notification-server:9000 \
+    NOTIFICATION_SERVER_URL=http://notification-server:3100
 
 # 포트 노출
 EXPOSE 3000
+EXPOSE 9000
 
 # 애플리케이션 실행
 CMD ["npm", "run", "start:prod"]

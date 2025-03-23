@@ -20,9 +20,12 @@ ENV TZ=Asia/Seoul
 
 # 환경변수 설정
 ENV PORT=3100
+ENV NOTIFICATION_GRPC_URL=0.0.0.0
+ENV NOTIFICATION_GRPC_PORT=9000
 
 # 포트 노출
 EXPOSE 3100
+EXPOSE 9000
 
 # 애플리케이션 실행
 CMD ["npm", "run", "start:prod"] 

@@ -24,15 +24,11 @@ import { CreateScheduleRequestDto } from '../dto/request/create-schedule.request
 import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
 import { UserDto } from 'src/module/auth/dto/user.dto';
 import { User } from 'src/common/decorator/user.decorator';
-import { NotificationService } from '../service/notification.service';
 
 @ApiTags('Schedule')
 @Controller('schedule')
 export class ScheduleController {
-  constructor(
-    private readonly scheduleService: ScheduleService,
-    private readonly notificationService: NotificationService
-  ) {}
+  constructor(private readonly scheduleService: ScheduleService) {}
 
   @ApiOkResponse({
     type: ResponseDto,
@@ -155,11 +151,5 @@ export class ScheduleController {
   @Delete('/:_id')
   delete(@Param('_id') _id: string) {
     return this.scheduleService.delete(_id);
-  }
-
-  @ApiOperation({ summary: '일정 알림 수동 실행 (테스트용)' })
-  @Post('/check-schedules')
-  async checkSchedules() {
-    return this.notificationService.manualCheckSchedules();
   }
 }

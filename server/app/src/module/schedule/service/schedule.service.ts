@@ -1,4 +1,10 @@
-import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  HttpException,
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleInit
+} from '@nestjs/common';
 import { Schedule } from '../schema/schedule.schema';
 import {
   CountType,
@@ -14,8 +20,25 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { WorkspaceRepository } from 'src/module/workspace/interface/workspace.repository';
 import { Types } from 'mongoose';
-import { FCMService } from './fcm.service';
 import { UserDto } from 'src/module/auth/dto/user.dto';
+import { HttpService } from '@nestjs/axios';
+import { ClientGrpc, Client, Transport } from '@nestjs/microservices';
+import { join } from 'path';
+import { Observable } from 'rxjs';
+
+// NotificationService gRPC 인터페이스 정의
+interface NotificationService {
+  sendNotification(request: {
+    fcm_token: string;
+    title: string;
+    body: string;
+    data: Record<string, string>;
+  }): Observable<{
+    success: boolean;
+    message: string;
+    timestamp: string;
+  }>;
+}
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -24,7 +47,25 @@ dayjs.extend(timezone);
 dayjs.tz.setDefault('Asia/Seoul');
 
 @Injectable()
-export class ScheduleService {
+export class ScheduleService implements OnModuleInit {
+  @Client({
+    transport: Transport.GRPC,
+    options: {
+      package: 'notification',
+      protoPath: join(__dirname, 'proto/notification.proto'),
+      loader: {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true
+      },
+      url: '127.0.0.1:9000' // 0.0.0.0 대신 127.0.0.1 사용
+    }
+  })
+  private readonly grpcClient: ClientGrpc;
+  private notificationService: NotificationService;
+
   constructor(
     @Inject('SCHEDULE_REPOSITORY')
     private readonly scheduleRepository: ScheduleRepository,
@@ -32,10 +73,21 @@ export class ScheduleService {
     private readonly cacheGenerator: CACHE_GENERATOR,
     @Inject('WORKSPACE_REPOSITORY')
     private readonly workspaceRepository: WorkspaceRepository,
-    private readonly fcmService: FCMService
+    private readonly httpService: HttpService
   ) {}
 
   private readonly logger = new Logger(ScheduleService.name);
+
+  onModuleInit() {
+    // gRPC 클라이언트 서비스 초기화
+    try {
+      this.notificationService =
+        this.grpcClient.getService<NotificationService>('NotificationService');
+      this.logger.log('gRPC 클라이언트가 초기화되었습니다.');
+    } catch (error) {
+      this.logger.error('gRPC 클라이언트 초기화 실패:', error);
+    }
+  }
 
   async find(
     _id: string,
@@ -192,25 +244,25 @@ export class ScheduleService {
       const master_schedule_count = await this.scheduleRepository.count(
         new Types.ObjectId(_id),
         new Types.ObjectId(master_id),
-        new Types.ObjectId(guest_user._id),
+        new Types.ObjectId(guest_user._id as string),
         CountType.MASTER
       );
       const guest_schedule_count = await this.scheduleRepository.count(
         new Types.ObjectId(_id),
         new Types.ObjectId(master_id),
-        new Types.ObjectId(guest_user._id),
+        new Types.ObjectId(guest_user._id as string),
         CountType.GUEST
       );
       const together_schedule_count = await this.scheduleRepository.count(
         new Types.ObjectId(_id),
         new Types.ObjectId(master_id),
-        new Types.ObjectId(guest_user._id),
+        new Types.ObjectId(guest_user._id as string),
         CountType.TOGETHER
       );
       const anniversary_schedule_count = await this.scheduleRepository.count(
         new Types.ObjectId(_id),
         new Types.ObjectId(master_id),
-        new Types.ObjectId(guest_user._id),
+        new Types.ObjectId(guest_user._id as string),
         CountType.ANNIVERSARY
       );
 
@@ -239,7 +291,7 @@ export class ScheduleService {
         body
       );
 
-      // 워크스페이스에서 상대방 정보 가져오기
+      // 워크스페이스에서 유저 정보 가져오기
       const workspace = await this.workspaceRepository.findOneById(
         new Types.ObjectId(_id)
       );
@@ -250,29 +302,84 @@ export class ScheduleService {
 
       const current_user_id = user._id;
 
-      // 상대방 찾기 (커플 중 현재 사용자가 아닌 사람)
-      const partner: any = workspace.users.find(
-        (user: any) => user._id.toString() !== current_user_id
-      );
+      // 워크스페이스의 모든 유저에게 알림 전송
+      for (const workspaceUser of workspace.users) {
+        const userObj = workspaceUser as any; // 타입 캐스팅
 
-      // 상대방이 있고, FCM 토큰이 있고, 알림 설정이 활성화되어 있는 경우에만 알림 전송
-      if (
-        partner &&
-        partner.fcm_token &&
-        partner.push_enabled &&
-        (body.is_anniversary
-          ? partner.anniversary_alarm
-          : partner.schedule_alarm)
-      ) {
-        await this.fcmService.sendPushNotification(
-          partner.fcm_token,
-          `${user.name}님의 새로운 스케줄을 등록`,
-          `${body.title}`,
-          {
-            scheduleId: schedule._id.toString(),
-            type: 'NEW_SCHEDULE'
+        // 알림 조건 확인
+        if (
+          userObj.fcm_token &&
+          userObj.push_enabled &&
+          (body.is_anniversary
+            ? userObj.anniversary_alarm
+            : userObj.schedule_alarm)
+        ) {
+          // 본인인 경우 다른 메시지 전송
+          const isCurrentUser = userObj._id.toString() === current_user_id;
+          const notificationTitle = isCurrentUser
+            ? `새로운 스케줄이 등록되었습니다`
+            : `${user.name}님의 새로운 스케줄을 등록`;
+
+          // gRPC를 통한 알림 전송 시도
+          try {
+            // 알림 요청 객체 생성
+            const notificationRequest = {
+              fcm_token: userObj.fcm_token,
+              title: notificationTitle,
+              body: `${body.title}`,
+              data: {
+                scheduleId: schedule._id.toString(),
+                type: 'NEW_SCHEDULE'
+              }
+            };
+
+            this.notificationService
+              .sendNotification(notificationRequest)
+              .subscribe({
+                next: (response) => {
+                  this.logger.log(
+                    `gRPC 알림 전송 결과 (${userObj._id}): ${JSON.stringify(response)}`
+                  );
+                  if (!response.success) {
+                    this.logger.warn(
+                      `gRPC 알림 전송 실패 (${userObj._id}), HTTP로 폴백`
+                    );
+                    this.sendHttpNotificationFallback(
+                      userObj.fcm_token,
+                      notificationTitle,
+                      body.title,
+                      {
+                        scheduleId: schedule._id.toString(),
+                        type: 'NEW_SCHEDULE'
+                      }
+                    );
+                  }
+                },
+                error: (error) => {
+                  this.logger.error(
+                    `gRPC 알림 전송 중 오류 발생 (${userObj._id}):`,
+                    error
+                  );
+                  // gRPC 호출 실패 시 HTTP 폴백
+                  this.logger.warn('HTTP 폴백 시도');
+                  this.sendHttpNotificationFallback(
+                    userObj.fcm_token,
+                    notificationTitle,
+                    body.title,
+                    {
+                      scheduleId: schedule._id.toString(),
+                      type: 'NEW_SCHEDULE'
+                    }
+                  );
+                }
+              });
+          } catch (error) {
+            this.logger.error(
+              `알림 전송 준비 중 오류 발생 (${userObj._id}):`,
+              error
+            );
           }
-        );
+        }
       }
 
       return schedule;
@@ -282,6 +389,39 @@ export class ScheduleService {
         e.message || 'Internal server error',
         e.status || 500
       );
+    }
+  }
+
+  // HTTP를 통한 알림 전송 (폴백 메서드)
+  private sendHttpNotificationFallback(
+    fcmToken: string,
+    title: string,
+    body: string,
+    data: Record<string, string>
+  ) {
+    try {
+      const notificationServerUrl =
+        process.env.NOTIFICATION_SERVER_URL || 'http://localhost:3100';
+
+      this.httpService
+        .post(`${notificationServerUrl}/notification/send`, {
+          fcm_token: fcmToken,
+          title,
+          body,
+          data
+        })
+        .subscribe({
+          next: (response) => {
+            this.logger.log(
+              `HTTP 알림 전송 성공: ${JSON.stringify(response.data)}`
+            );
+          },
+          error: (error) => {
+            this.logger.error('HTTP 알림 전송 실패:', error);
+          }
+        });
+    } catch (error) {
+      this.logger.error('HTTP 알림 요청 준비 중 오류 발생:', error);
     }
   }
 

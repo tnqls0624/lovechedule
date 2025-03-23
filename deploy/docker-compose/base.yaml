@@ -63,8 +63,10 @@ services:
       - REDIS_EXPIRED_AT=0
       - WEATHER_API_KEY=ec379cdcda47660851b8bd47f8432f8b
       - FIREBASE_KEY_PATH=/usr/src/app/dist/asset/lovechedule-firebase-adminsdk-fbsvc-96c78810d7.json
+      - NOTIFICATION_SERVER_URL=http://notification-server:3100
+      - NOTIFICATION_GRPC_URL=notification-server:9000
     deploy:
-      replicas: 2
+      replicas: 1
       restart_policy:
         condition: on-failure
       labels:
@@ -84,6 +86,9 @@ services:
       - API_URL=http://lovechedule-server:3000
       - API_KEY=your-api-key-here
       - NODE_ENV=production
+      - NOTIFICATION_GRPC_URL=notification-server:9000
+      - NOTIFICATION_SERVER_URL=http://notification-server:3100
+
     deploy:
       replicas: 1
       restart_policy:

@@ -111,7 +111,9 @@ build_and_push_image() {
             
             # EC2 환경에서는 npm이 설치되어 있지 않을 수 있으므로 Docker 내에서만 빌드
             echo "🔨 Docker 이미지 빌드 중..."
-            docker build --no-cache --pull -t "${registry}:${tag}" "${WORKSPACE_DIR}/server/notification"
+            docker build --no-cache --pull -t "${registry}:${tag}" \
+            --build-arg BUILD_TIME=$(date +%Y%m%d%H%M%S) \
+            "${WORKSPACE_DIR}/server/notification"
             
             # 타임스탬프 태그도 함께 생성
             local timestamp=$(date +%Y%m%d%H%M%S)

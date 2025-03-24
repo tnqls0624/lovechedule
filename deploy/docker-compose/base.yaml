@@ -54,6 +54,7 @@ services:
   # lovechedule 애플리케이션
   lovechedule-server:
     image: soomumu/project:lovechedule
+    container_name: lovechedule-server
     environment:
       - MONGO_URL=mongodb://root:1234@mongodb:27017/lovechedule?authSource=admin
       - JWT_ACCESS_TOKEN_SECRET=secret
@@ -82,6 +83,7 @@ services:
   # 알림 서버 애플리케이션
   notification-server:
     image: soomumu/project:notification
+    container_name: notification-server
     environment:
       - API_URL=http://lovechedule-server:3000
       - API_KEY=your-api-key-here

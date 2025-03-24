@@ -90,11 +90,14 @@ build_and_push_image() {
             
             # EC2 환경에서는 npm이 설치되어 있지 않을 수 있으므로 Docker 내에서만 빌드
             echo "🔨 Docker 이미지 빌드 중..."
-            docker build --no-cache --pull -t "${registry}:${tag}" "${WORKSPACE_DIR}/server/app"
+            docker build --no-cache --pull -t "${registry}:${tag}" \
+            --build-arg BUILD_TIME=$(date +%Y%m%d%H%M%S) \
+            "${WORKSPACE_DIR}/server/app"
             
             # 타임스탬프 태그도 함께 생성
             local timestamp=$(date +%Y%m%d%H%M%S)
             docker tag "${registry}:${tag}" "${registry}:${tag}-${timestamp}"
+            
             echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"
             docker push "${registry}:${tag}"
             # 타임스탬프 태그도 푸시
@@ -118,10 +121,12 @@ build_and_push_image() {
             # 타임스탬프 태그도 함께 생성
             local timestamp=$(date +%Y%m%d%H%M%S)
             docker tag "${registry}:${tag}" "${registry}:${tag}-${timestamp}"
+            
             echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"
             docker push "${registry}:${tag}"
             # 타임스탬프 태그도 푸시
             docker push "${registry}:${tag}-${timestamp}"
+            
             echo "✅ 알림 서버 이미지 빌드 및 푸시 완료!"
             ;;
         *)
@@ -236,6 +241,12 @@ if [ "$DEPLOY" = true ]; then
     
     if [ "$SERVICE" == "notification-server" ] || [ -z "$SERVICE" ]; then
         docker pull "${REGISTRY}:notification" --quiet || echo "⚠️ 알림 서버 이미지 갱신 실패, 계속 진행합니다."
+    fi
+    
+    # 서비스 이미지 강제 업데이트 명령 추가
+    if [ "$SERVICE" == "notification-server" ]; then
+        echo "🔄 notification-server 서비스를 강제 업데이트합니다..."
+        docker service update --force --image "${REGISTRY}:notification" "${STACK_NAME}_notification-server" || echo "⚠️ 알림 서버 서비스 업데이트 실패, 계속 진행합니다."
     fi
     
     deploy_stack "$STACK_NAME"

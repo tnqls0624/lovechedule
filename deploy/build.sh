@@ -226,9 +226,6 @@ if ! docker info | grep -q "Swarm: active"; then
     docker swarm init --advertise-addr $(hostname -i) || echo "⚠️ Swarm 초기화 실패. 이미 초기화되었거나 권한이 없을 수 있습니다."
 fi
 
-# Docker Compose 디렉토리 및 파일 확인
-check_compose_dir
-
 # 레지스트리 설정
 REGISTRY="soomumu/project"
 

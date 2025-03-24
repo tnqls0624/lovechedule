@@ -88,17 +88,16 @@ services:
       - NODE_ENV=production
       - NOTIFICATION_GRPC_URL=notification-server:9000
       - NOTIFICATION_SERVER_URL=http://notification-server:3100
-
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
       labels:
+        # HTTP API용 설정 (3100 포트)
         - "traefik.enable=true"
         - "traefik.http.routers.notification.rule=Host(`lovechedule.com`) && PathPrefix(`/notification`)"
         - "traefik.http.routers.notification.entrypoints=web"
         - "traefik.http.services.notification-service.loadbalancer.server.port=3100"
-        - "traefik.http.services.notification-service.loadbalancer.server.port=9000"
     networks:
       - lovechedule-network
 

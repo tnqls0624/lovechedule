@@ -87,7 +87,7 @@ build_and_push_image() {
             # 이미지 빌드 전 기존 이미지 제거 (오류 무시)
             docker rmi "${registry}:${tag}" 2>/dev/null || true
             docker rmi "${registry}:${tag}-$(date +%Y%m%d)*" 2>/dev/null || true
-            docker rmi "${registry}:latest" 2>/dev/null || true
+            docker rmi "${registry}:${tag}-latest" 2>/dev/null || true
             
             # EC2 환경에서는 npm이 설치되어 있지 않을 수 있으므로 Docker 내에서만 빌드
             echo "🔨 Docker 이미지 빌드 중..."
@@ -99,14 +99,14 @@ build_and_push_image() {
             local timestamp=$(date +%Y%m%d%H%M%S)
             docker tag "${registry}:${tag}" "${registry}:${tag}-${timestamp}"
             # latest 태그 추가
-            docker tag "${registry}:${tag}" "${registry}:latest"
+            docker tag "${registry}:${tag}" "${registry}:${tag}-latest"
             
             echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"
             docker push "${registry}:${tag}"
             # 타임스탬프 태그도 푸시
             docker push "${registry}:${tag}-${timestamp}"
             # latest 태그도 푸시
-            docker push "${registry}:latest"
+            docker push "${registry}:${tag}-latest"
             
             echo "✅ 서버 이미지 빌드 및 푸시 완료!"
             ;;
@@ -117,7 +117,7 @@ build_and_push_image() {
             # 이미지 빌드 전 기존 이미지 제거 (오류 무시)
             docker rmi "${registry}:${tag}" 2>/dev/null || true
             docker rmi "${registry}:${tag}-$(date +%Y%m%d)*" 2>/dev/null || true
-            docker rmi "${registry}:latest" 2>/dev/null || true
+            docker rmi "${registry}:${tag}-latest" 2>/dev/null || true
             
             # EC2 환경에서는 npm이 설치되어 있지 않을 수 있으므로 Docker 내에서만 빌드
             echo "🔨 Docker 이미지 빌드 중..."
@@ -129,14 +129,14 @@ build_and_push_image() {
             local timestamp=$(date +%Y%m%d%H%M%S)
             docker tag "${registry}:${tag}" "${registry}:${tag}-${timestamp}"
             # latest 태그 추가
-            docker tag "${registry}:${tag}" "${registry}:latest"
+            docker tag "${registry}:${tag}" "${registry}:${tag}-latest"
             
             echo "🐳 Docker 이미지를 푸시합니다: ${registry}:${tag}"
             docker push "${registry}:${tag}"
             # 타임스탬프 태그도 푸시
             docker push "${registry}:${tag}-${timestamp}"
             # latest 태그도 푸시
-            docker push "${registry}:latest"
+            docker push "${registry}:${tag}-latest"
             
             echo "✅ 알림 서버 이미지 빌드 및 푸시 완료!"
             ;;

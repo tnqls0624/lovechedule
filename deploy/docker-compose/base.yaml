@@ -89,9 +89,8 @@ services:
       - REDIS_EXPIRED_AT=0
       - WEATHER_API_KEY=ec379cdcda47660851b8bd47f8432f8b
       - API_URL=http://lovechedule-server:3000
-      - API_KEY=your-api-key-here
       - NODE_ENV=production
-      - NOTIFICATION_GRPC_URL=notification-server:9000
+      - NOTIFICATION_GRPC_URL=0.0.0.0:9000
       - NOTIFICATION_SERVER_URL=http://notification-server:3100
     deploy:
       replicas: 1

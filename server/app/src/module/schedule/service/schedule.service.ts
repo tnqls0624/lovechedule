@@ -60,7 +60,7 @@ export class ScheduleService implements OnModuleInit {
         defaults: true,
         oneofs: true
       },
-      url: '127.0.0.1:9000' // 0.0.0.0 대신 127.0.0.1 사용
+      url: process.env.NOTIFICATION_GRPC_URL // 0.0.0.0 대신 127.0.0.1 사용
     }
   })
   private readonly grpcClient: ClientGrpc;

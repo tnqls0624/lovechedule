@@ -81,6 +81,13 @@ services:
   notification-server:
     image: soomumu/project:notification-latest
     environment:
+      - MONGO_URL=mongodb://root:1234@mongodb:27017/lovechedule?authSource=admin
+      - JWT_ACCESS_TOKEN_SECRET=secret
+      - JWT_ACCESS_TOKEN_EXPIRATION_TIME=365d
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_EXPIRED_AT=0
+      - WEATHER_API_KEY=ec379cdcda47660851b8bd47f8432f8b
       - API_URL=http://lovechedule-server:3000
       - API_KEY=your-api-key-here
       - NODE_ENV=production

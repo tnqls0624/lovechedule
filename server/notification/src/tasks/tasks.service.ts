@@ -126,47 +126,99 @@ export class TasksService {
         .exec();
 
       let totalNotifications = 0;
+      let successCount = 0;
+      let failCount = 0;
 
       for (const workspace of workspaces) {
-        // populate된 users 배열에서 조건에 맞는 사용자만 필터링
-        const users = workspace.users.filter((user) => {
-          // User 타입으로 캐스팅하여 타입 체크 수행
-          const userObj = user as any;
-          return (
-            userObj.push_enabled &&
-            userObj.anniversary_alarm &&
-            userObj.fcm_token &&
-            userObj.fcm_token.trim() !== ""
-          );
-        });
+        // MongoDB populate에서 이미 필터링된 사용자를 사용
+        const users = workspace.users as User[];
+        
+        if (!users || users.length === 0) {
+          this.logger.debug(`워크스페이스 ${workspace._id}에 알림 대상 사용자가 없습니다.`);
+          continue;
+        }
 
-        if (users.length === 0) continue;
+        this.logger.log(`워크스페이스 ${workspace._id}: 알림 대상 사용자 ${users.length}명`);
 
-        // TODO: 기념일 정보를 가져오는 로직 구현
-        // 필요한 경우 추가 모델 주입받아 사용
-        const anniversaries = []; // 실제 구현 시 DB에서 조회
+        // 날짜 형식: MM-DD로 변환 (연도 제외한 월-일 형식으로 비교)
+        const todayDate = dayjs(today).startOf("day").toDate();
+        const tomorrowDate = dayjs(tomorrow).startOf("day").toDate();
+        const todayMMDD = dayjs(today).format('MM-DD');
+        const tomorrowMMDD = dayjs(tomorrow).format('MM-DD');
+
+        // 워크스페이스의 기념일 조회 (Schedule에서 is_anniversary=true인 항목)
+        const anniversaries = await this.scheduleModel.find({
+          workspace: workspace._id,
+          is_anniversary: true,
+          $or: [
+            // 오늘 기념일 (start_date 기준)
+            {
+              $expr: {
+                $eq: [
+                  { $dateToString: { format: "%m-%d", date: "$start_date" } },
+                  todayMMDD
+                ]
+              }
+            },
+            // 내일 기념일 (start_date 기준)
+            {
+              $expr: {
+                $eq: [
+                  { $dateToString: { format: "%m-%d", date: "$start_date" } },
+                  tomorrowMMDD
+                ]
+              }
+            }
+          ]
+        }).exec();
+
+        this.logger.log(`워크스페이스 ${workspace._id}의 오늘/내일 기념일: ${anniversaries.length}개`);
 
         // 각 기념일에 대해 알림 데이터 준비
         for (const anniversary of anniversaries) {
+          // 기념일이 오늘인지 내일인지 확인
+          const anniversaryMMDD = dayjs(anniversary.start_date).format('MM-DD');
+          const isToday = anniversaryMMDD === todayMMDD;
+          
+          // 알림 메시지 생성
+          const titlePrefix = isToday ? "오늘" : "내일";
+          const notificationTitle = `${titlePrefix}의 기념일 알림`;
+          let notificationBody = `${titlePrefix}은 ${anniversary.title} 기념일입니다.`;
+          
+          // 반복 유형에 따른 문구 추가
+          if (anniversary.repeat_type === 'yearly') {
+            notificationBody = `${titlePrefix}은 매년 반복되는 ${anniversary.title} 기념일입니다.`;
+          } else if (anniversary.repeat_type === 'monthly') {
+            notificationBody = `${titlePrefix}은 매월 반복되는 ${anniversary.title} 기념일입니다.`;
+          }
+
+          // 각 사용자에게 알림 전송
           for (const user of users) {
-            // User 타입으로 캐스팅
-            const userObj = user as any;
+            if (!user.fcm_token) continue; // 안전 검사
+            
             totalNotifications++;
-            await this.sendPushNotification(
-              userObj.fcm_token,
-              "기념일 알림",
-              `내일은 ${anniversary.title} 기념일입니다.`,
-              {
-                anniversaryId: anniversary._id.toString(),
-                workspaceId: workspace._id.toString(),
-                type: "anniversary",
-              }
-            );
+            try {
+              await this.sendPushNotification(
+                user.fcm_token,
+                notificationTitle,
+                notificationBody,
+                {
+                  scheduleId: anniversary._id.toString(),
+                  workspaceId: workspace._id.toString(),
+                  type: "anniversary",
+                  date: isToday ? today : tomorrow
+                }
+              );
+              successCount++;
+            } catch (error) {
+              failCount++;
+              this.logger.error(`사용자 ${user._id}에게 알림 전송 실패: ${error.message}`);
+            }
           }
         }
       }
 
-      this.logger.log(`${totalNotifications}개의 기념일 알림을 전송했습니다.`);
+      this.logger.log(`기념일 알림 통계: 총 ${totalNotifications}개 (성공: ${successCount}, 실패: ${failCount})`);
     } catch (error) {
       this.logger.error(
         `기념일 알림 처리 중 오류 발생: ${error.message || error}`
@@ -195,29 +247,27 @@ export class TasksService {
         .exec();
 
       let totalNotifications = 0;
+      let successCount = 0;
+      let failCount = 0;
 
       for (const workspace of workspaces) {
-        // populate된 users 배열에서 조건에 맞는 사용자만 필터링
-        const users = workspace.users.filter((user) => {
-          // User 타입으로 캐스팅하여 타입 체크 수행
-          const userObj = user as any;
-          return (
-            userObj.push_enabled && userObj.schedule_alarm && userObj.fcm_token
-          );
-        });
+        // MongoDB populate에서 이미 필터링된 사용자를 사용
+        const users = workspace.users as User[];
+        
+        if (!users || users.length === 0) {
+          this.logger.debug(`워크스페이스 ${workspace._id}에 알림 대상 사용자가 없습니다.`);
+          continue;
+        }
 
-        if (users.length === 0) continue;
-
-        // 오늘 날짜의 스케줄 조회
+        // 오늘 날짜의 스케줄 조회 (is_anniversary=false인 일반 일정만)
         const todayDate = dayjs(today).startOf("day").toDate();
-        todayDate.setHours(0, 0, 0, 0);
-
         const tomorrowDate = dayjs(todayDate).add(1, "day").toDate();
 
         // workspace._id에 해당하는 일정 조회
         const schedules = await this.scheduleModel
           .find({
             workspace: workspace._id,
+            is_anniversary: false, // 기념일이 아닌 일반 일정만 조회
             $or: [
               {
                 start_date: {
@@ -235,29 +285,36 @@ export class TasksService {
           })
           .exec();
 
-        this.logger.log(`${schedules.length}개의 일정이 조회되었습니다.`);
+        this.logger.log(`워크스페이스 ${workspace._id}의 오늘 일정: ${schedules.length}개`);
 
         // 각 스케줄에 대해 알림 전송
         for (const schedule of schedules) {
           for (const user of users) {
-            // User 타입으로 캐스팅
-            const userObj = user as any;
+            if (!user.fcm_token) continue; // 안전 검사
+            
             totalNotifications++;
-            await this.sendPushNotification(
-              userObj.fcm_token,
-              "오늘의 일정 알림",
-              `${schedule.title} 일정이 있습니다.`,
-              {
-                scheduleId: schedule._id.toString(),
-                workspaceId: workspace._id.toString(),
-                type: "schedule",
-              }
-            );
+            try {
+              await this.sendPushNotification(
+                user.fcm_token,
+                "오늘의 일정 알림",
+                `${schedule.title} 일정이 있습니다.`,
+                {
+                  scheduleId: schedule._id.toString(),
+                  workspaceId: workspace._id.toString(),
+                  type: "schedule",
+                  date: today
+                }
+              );
+              successCount++;
+            } catch (error) {
+              failCount++;
+              this.logger.error(`사용자 ${user._id}에게 알림 전송 실패: ${error.message}`);
+            }
           }
         }
       }
 
-      this.logger.log(`${totalNotifications}개의 일정 알림을 전송했습니다.`);
+      this.logger.log(`일정 알림 통계: 총 ${totalNotifications}개 (성공: ${successCount}, 실패: ${failCount})`);
     } catch (error) {
       this.logger.error(
         `일반 일정 알림 처리 중 오류 발생: ${error.message || error}`

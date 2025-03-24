@@ -385,4 +385,124 @@ export class TasksService {
   private formatDate(date: Date): string {
     return dayjs(date).format("YYYY-MM-DD");
   }
+
+  /**
+   * 오늘 알림이 있는 사용자에게 테스트 알림 전송
+   */
+  async sendTodayTestNotification() {
+    try {
+      this.logger.log('오늘 알림이 있는 사용자에게 테스트 알림 전송 시작');
+      
+      // 오늘 날짜 형식: YYYY-MM-DD
+      const today = this.getTodayDate();
+      const todayMMDD = dayjs(today).format('MM-DD');
+      
+      let totalUsers = 0;
+      let successCount = 0;
+      let failCount = 0;
+      
+      // 모든 워크스페이스 조회
+      const workspaces = await this.workspaceModel
+        .find()
+        .populate({
+          path: "users",
+          match: {
+            push_enabled: true,
+            fcm_token: { $exists: true, $ne: null },
+          },
+        })
+        .exec();
+      
+      this.logger.log(`조회된 워크스페이스 수: ${workspaces.length}`);
+      
+      for (const workspace of workspaces) {
+        // MongoDB populate에서 이미 필터링된 사용자를 사용
+        const users = workspace.users as User[];
+        
+        if (!users || users.length === 0) {
+          this.logger.debug(`워크스페이스 ${workspace._id}에 알림 대상 사용자가 없습니다.`);
+          continue;
+        }
+        
+        // 오늘 날짜의 일정 조회
+        const todaySchedules = await this.scheduleModel.find({
+          workspace: workspace._id,
+          $or: [
+            // 오늘 일반 일정 (start_date가 오늘)
+            {
+              $expr: {
+                $eq: [
+                  { $dateToString: { format: "%Y-%m-%d", date: "$start_date" } },
+                  today
+                ]
+              },
+              is_anniversary: false
+            },
+            // 오늘 기념일 (월-일이 오늘)
+            {
+              $expr: {
+                $eq: [
+                  { $dateToString: { format: "%m-%d", date: "$start_date" } },
+                  todayMMDD
+                ]
+              },
+              is_anniversary: true
+            }
+          ]
+        }).exec();
+        
+        if (!todaySchedules || todaySchedules.length === 0) {
+          this.logger.debug(`워크스페이스 ${workspace._id}에 오늘 일정이 없습니다.`);
+          continue;
+        }
+        
+        this.logger.log(`워크스페이스 ${workspace._id}: 오늘 일정 ${todaySchedules.length}개, 알림 대상 사용자 ${users.length}명`);
+        
+        // 일정 제목 목록 생성
+        const scheduleNames = todaySchedules.map(s => s.title).join(', ');
+        
+        // 각 사용자에게 알림 전송
+        for (const user of users) {
+          if (!user.fcm_token) continue; // 안전 검사
+          
+          totalUsers++;
+          const notificationTitle = "오늘의 일정 테스트 알림";
+          const notificationBody = `오늘의 일정: ${scheduleNames}`;
+          
+          try {
+            await this.sendPushNotification(
+              user.fcm_token,
+              notificationTitle,
+              notificationBody,
+              {
+                workspaceId: workspace._id.toString(),
+                type: "today-test",
+                date: today,
+                scheduleCount: todaySchedules.length.toString()
+              }
+            );
+            successCount++;
+          } catch (error) {
+            failCount++;
+            this.logger.error(`사용자 ${user._id}에게 테스트 알림 전송 실패: ${error.message}`);
+          }
+        }
+      }
+      
+      const result = {
+        today,
+        totalUsers,
+        success: successCount,
+        fail: failCount,
+      };
+      
+      this.logger.log(`오늘의 테스트 알림 통계: 총 ${totalUsers}명 (성공: ${successCount}, 실패: ${failCount})`);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `오늘의 테스트 알림 전송 중 오류 발생: ${error.message || error}`
+      );
+      throw error;
+    }
+  }
 }

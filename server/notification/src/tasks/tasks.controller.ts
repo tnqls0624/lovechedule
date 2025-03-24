@@ -48,6 +48,24 @@ export class TasksController {
   }
 
   @ApiOperation({
+    summary: "오늘의 알림 테스트",
+    description: "오늘 알림이 있는 모든 사용자에게 테스트 알림을 전송합니다. (Body 값 필요 없음)",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "테스트 알림 전송 결과",
+  })
+  @Post("test-today")
+  async sendTodayTestNotification() {
+    const result = await this.tasksService.sendTodayTestNotification();
+    return {
+      success: true,
+      message: "오늘의 테스트 알림 전송이 완료되었습니다.",
+      result,
+    };
+  }
+
+  @ApiOperation({
     summary: "알림 전송",
     description: "FCM을 통해 알림을 전송합니다. (HTTP 폴백용)",
   })

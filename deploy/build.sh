@@ -247,11 +247,11 @@ if [ "$DEPLOY" = true ]; then
     echo "🔄 Docker 이미지를 강제로 갱신합니다..."
 
     if [ "$SERVICE" == "lovechedule-server" ] || [ -z "$SERVICE" ]; then  
-        docker pull "${REGISTRY}:lovechedule-latest" --quiet || echo "⚠️ 메인 서버 이미지 갱신 실패, 계속 진행합니다."
+        docker pull "soomumu/project:lovechedule-latest" --quiet || echo "⚠️ 메인 서버 이미지 갱신 실패, 계속 진행합니다."
     fi
     
     if [ "$SERVICE" == "notification-server" ] || [ -z "$SERVICE" ]; then
-        docker pull "${REGISTRY}:notification-latest" --quiet || echo "⚠️ 알림 서버 이미지 갱신 실패, 계속 진행합니다."
+        docker pull "soomumu/project:notification-latest" --quiet || echo "⚠️ 알림 서버 이미지 갱신 실패, 계속 진행합니다."
     fi
     
     
@@ -260,7 +260,7 @@ if [ "$DEPLOY" = true ]; then
         echo "🔄 notification-server 서비스를 강제 업데이트합니다..."
         # 서비스가 이미 존재하는지 확인
         if docker service ls | grep -q "${STACK_NAME}_notification-server"; then
-            docker service update --force --image "${REGISTRY}:notification-latest" "${STACK_NAME}_notification-server" || echo "⚠️ 알림 서버 서비스 업데이트 실패, 계속 진행합니다."
+            docker service update --force --image "soomumu/project:notification-latest" "${STACK_NAME}_notification-server" || echo "⚠️ 알림 서버 서비스 업데이트 실패, 계속 진행합니다."
         else
             echo "ℹ️ notification-server 서비스가 존재하지 않습니다. 새로 배포합니다."
             docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
@@ -269,7 +269,7 @@ if [ "$DEPLOY" = true ]; then
         echo "🔄 lovechedule-server 서비스를 강제 업데이트합니다..."
         # 서비스가 이미 존재하는지 확인
         if docker service ls | grep -q "${STACK_NAME}_lovechedule-server"; then
-            docker service update --force --image "${REGISTRY}:lovechedule-latest" "${STACK_NAME}_lovechedule-server" || echo "⚠️ 메인 서버 서비스 업데이트 실패, 계속 진행합니다."
+            docker service update --force --image "soomumu/project:lovechedule-latest" "${STACK_NAME}_lovechedule-server" || echo "⚠️ 메인 서버 서비스 업데이트 실패, 계속 진행합니다."
         else
             echo "ℹ️ lovechedule-server 서비스가 존재하지 않습니다. 새로 배포합니다."
             docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"

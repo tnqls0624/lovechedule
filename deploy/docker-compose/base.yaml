@@ -4,7 +4,6 @@ services:
   # Traefik 리버스 프록시 서비스
   traefik:
     image: traefik:v2.10
-    container_name: traefik
     command:
       - "--api.insecure=true" # 대시보드 활성화 (보안 없음)
       - "--providers.docker=true" # Docker 제공자 활성화
@@ -43,7 +42,6 @@ services:
   # Redis 서비스
   redis:
     image: redis:latest
-    container_name: redis
     deploy:
       replicas: 1
       restart_policy:

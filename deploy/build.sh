@@ -248,22 +248,23 @@ set_compose_file "$ENV"
 if [ "$DEPLOY" = true ]; then
     # 배포 전 이미지 강제 갱신
     echo "🔄 Docker 이미지를 강제로 갱신합니다..."
-    docker pull "${REGISTRY}:lovechedule" --quiet || echo "⚠️ 메인 서버 이미지 갱신 실패, 계속 진행합니다."
-    
-    if [ "$SERVICE" == "notification-server" ] || [ -z "$SERVICE" ]; then
-        docker pull "${REGISTRY}:notification" --quiet || echo "⚠️ 알림 서버 이미지 갱신 실패, 계속 진행합니다."
+
+    if [ "$SERVICE" == "lovechedule-server" ] || [ -z "$SERVICE" ]; then  
+        docker pull "${REGISTRY}:lovechedule-latest" --quiet || echo "⚠️ 메인 서버 이미지 갱신 실패, 계속 진행합니다."
     fi
     
-    # latest 태그 갱신
-    docker pull "${REGISTRY}:latest" --quiet || echo "⚠️ latest 이미지 갱신 실패, 계속 진행합니다."
+    if [ "$SERVICE" == "notification-server" ] || [ -z "$SERVICE" ]; then
+        docker pull "${REGISTRY}:notification-latest" --quiet || echo "⚠️ 알림 서버 이미지 갱신 실패, 계속 진행합니다."
+    fi
+    
     
     # 서비스 이미지 강제 업데이트 명령 추가
     if [ "$SERVICE" == "notification-server" ]; then
         echo "🔄 notification-server 서비스를 강제 업데이트합니다..."
-        docker service update --force --image "${REGISTRY}:notification" "notification-server" || echo "⚠️ 알림 서버 서비스 업데이트 실패, 계속 진행합니다."
+        docker service update --force --image "${REGISTRY}:notification-latest" "notification-server" || echo "⚠️ 알림 서버 서비스 업데이트 실패, 계속 진행합니다."
     elif [ "$SERVICE" == "lovechedule-server" ]; then
         echo "🔄 lovechedule-server 서비스를 강제 업데이트합니다..."
-        docker service update --force --image "${REGISTRY}:lovechedule" "lovechedule-server" || echo "⚠️ 메인 서버 서비스 업데이트 실패, 계속 진행합니다."
+        docker service update --force --image "${REGISTRY}:lovechedule-latest" "lovechedule-server" || echo "⚠️ 메인 서버 서비스 업데이트 실패, 계속 진행합니다."
     fi
     
     deploy_stack "$STACK_NAME"

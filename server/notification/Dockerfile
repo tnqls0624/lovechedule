@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build --max-old-space-size=2048
 
 # 프로덕션 의존성만 남기기 (더 작은 이미지 크기)
-RUN npm prune --production --no-audit
+RUN npm prune --production --no-audit --legacy-peer-deps
 
 ENV NODE_ENV=production
 ENV TZ=Asia/Seoul

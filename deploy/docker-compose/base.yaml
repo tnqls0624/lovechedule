@@ -96,7 +96,7 @@ services:
       - NOTIFICATION_GRPC_URL=0.0.0.0:9000
       - NOTIFICATION_SERVER_URL=http://notification-server:3100
       - AWS_REGION=ap-northeast-2
-      - AWS_S3_BUCKET=lovechedule-bucket
+      - AWS_S3_BUCKET=lovechedule-s3
       - AWS_S3_UPLOAD_PATH=uploads
     deploy:
       replicas: 1

@@ -5,18 +5,11 @@ import {
   Post,
   Res,
   UploadedFile,
-  UseInterceptors,
+  UseInterceptors
 } from '@nestjs/common';
-import {
-  ApiBody,
-  ApiConsumes,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags
-} from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseDto } from '../../../common/dto/response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UploadImageRequestDto } from '../dto/request/upload-image.request';
 import { PhotoService } from '../service/photo.service';
 
 @ApiTags('PHOTO')
@@ -32,7 +25,6 @@ export class PhotoController {
   @UseInterceptors(FileInterceptor('file'))
   @Post('upload')
   uploadFile(@UploadedFile() file: any) {
-    console.log('files',file)
     return this.photoService.uploadFile(file);
   }
 

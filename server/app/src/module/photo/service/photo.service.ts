@@ -13,14 +13,10 @@ export class PhotoService {
 
   constructor(
     @Inject('PHOTO_REPOSITORY')
-    private readonly photoRepository: PhotoRepository,
+    private readonly photoRepository: PhotoRepository
   ) {
     this.s3 = new S3Client({
-      region: process.env.AWS_REGION,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      },
+      region: process.env.AWS_REGION
     });
 
     this.bucketName = process.env.AWS_S3_BUCKET;
@@ -67,7 +63,7 @@ export class PhotoService {
         Key: fileName,
         Body: fileStream,
         ContentType: file.mimetype,
-        ContentLength: fileSize, // ✅ ContentLength 명시적으로 설정
+        ContentLength: fileSize // ✅ ContentLength 명시적으로 설정
       };
 
       await this.s3.send(new PutObjectCommand(params));

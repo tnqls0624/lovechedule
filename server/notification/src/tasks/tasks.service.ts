@@ -160,7 +160,12 @@ export class TasksService {
               {
                 $expr: {
                   $eq: [
-                    { $dateToString: { format: "%m-%d", date: "$start_date" } },
+                    {
+                      $dateToString: {
+                        format: "%m-%d",
+                        date: { $toDate: "$start_date" },
+                      },
+                    },
                     todayMMDD,
                   ],
                 },
@@ -169,7 +174,12 @@ export class TasksService {
               {
                 $expr: {
                   $eq: [
-                    { $dateToString: { format: "%m-%d", date: "$start_date" } },
+                    {
+                      $dateToString: {
+                        format: "%m-%d",
+                        date: { $toDate: "$start_date" },
+                      },
+                    },
                     tomorrowMMDD,
                   ],
                 },
@@ -285,14 +295,14 @@ export class TasksService {
             $or: [
               {
                 start_date: {
-                  $gte: todayDate,
-                  $lt: tomorrowDate,
+                  $gte: { $toDate: todayDate },
+                  $lt: { $toDate: tomorrowDate },
                 },
               },
               {
                 end_date: {
-                  $gte: todayDate,
-                  $lt: tomorrowDate,
+                  $gte: { $toDate: todayDate },
+                  $lt: { $toDate: tomorrowDate },
                 },
               },
             ],
@@ -458,7 +468,7 @@ export class TasksService {
                     {
                       $dateToString: {
                         format: "%Y-%m-%d",
-                        date: "$start_date",
+                        date: { $toDate: "$start_date" },
                       },
                     },
                     today,
@@ -470,7 +480,12 @@ export class TasksService {
               {
                 $expr: {
                   $eq: [
-                    { $dateToString: { format: "%m-%d", date: "$start_date" } },
+                    {
+                      $dateToString: {
+                        format: "%m-%d",
+                        date: { $toDate: "$start_date" },
+                      },
+                    },
                     todayMMDD,
                   ],
                 },

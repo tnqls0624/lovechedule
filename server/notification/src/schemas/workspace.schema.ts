@@ -68,3 +68,9 @@ export class Workspace {
 }
 
 export const WorkspaceSchema = SchemaFactory.createForClass(Workspace);
+
+// users 필드에 대한 인덱스 추가
+WorkspaceSchema.index({ users: 1 });
+
+// 인덱스가 확실히 생성되도록 ensureIndexes 호출
+WorkspaceSchema.set("autoIndex", true);

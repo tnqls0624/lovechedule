@@ -71,3 +71,11 @@ export class Schedule {
 }
 
 export const ScheduleSchema = SchemaFactory.createForClass(Schedule);
+
+// 인덱스 추가
+ScheduleSchema.index({ workspace: 1, is_anniversary: 1 });
+ScheduleSchema.index({ start_date: 1 });
+ScheduleSchema.index({ end_date: 1 });
+
+// 인덱스가 확실히 생성되도록 ensureIndexes 호출
+ScheduleSchema.set("autoIndex", true);

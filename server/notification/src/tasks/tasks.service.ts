@@ -145,8 +145,6 @@ export class TasksService {
         );
 
         // 날짜 형식: MM-DD로 변환 (연도 제외한 월-일 형식으로 비교)
-        const todayDate = dayjs(today).startOf("day").toDate();
-        const tomorrowDate = dayjs(tomorrow).startOf("day").toDate();
         const todayMMDD = dayjs(today).format("MM-DD");
         const tomorrowMMDD = dayjs(tomorrow).format("MM-DD");
 
@@ -155,45 +153,21 @@ export class TasksService {
           .find({
             workspace: workspace._id,
             is_anniversary: true,
-            $or: [
-              // 오늘 기념일 (start_date 기준)
-              {
-                $expr: {
-                  $eq: [
-                    {
-                      $dateToString: {
-                        format: "%m-%d",
-                        date: "$start_date",
-                      },
-                    },
-                    todayMMDD,
-                  ],
-                },
-              },
-              // 내일 기념일 (start_date 기준)
-              {
-                $expr: {
-                  $eq: [
-                    {
-                      $dateToString: {
-                        format: "%m-%d",
-                        date: "$start_date",
-                      },
-                    },
-                    tomorrowMMDD,
-                  ],
-                },
-              },
-            ],
           })
           .exec();
 
+        // 앱 메모리에서 필터링 (MongoDB 쿼리가 아닌 JavaScript로 필터링)
+        const filteredAnniversaries = anniversaries.filter(anniversary => {
+          const anniversaryMMDD = dayjs(anniversary.start_date).format("MM-DD");
+          return anniversaryMMDD === todayMMDD || anniversaryMMDD === tomorrowMMDD;
+        });
+
         this.logger.log(
-          `워크스페이스 ${workspace._id}의 오늘/내일 기념일: ${anniversaries.length}개`
+          `워크스페이스 ${workspace._id}의 오늘/내일 기념일: ${filteredAnniversaries.length}개`
         );
 
         // 각 기념일에 대해 알림 데이터 준비
-        for (const anniversary of anniversaries) {
+        for (const anniversary of filteredAnniversaries) {
           // 기념일이 오늘인지 내일인지 확인
           const anniversaryMMDD = dayjs(anniversary.start_date).format("MM-DD");
           const isToday = anniversaryMMDD === todayMMDD;
@@ -456,44 +430,25 @@ export class TasksService {
           continue;
         }
 
-        // 오늘 날짜의 일정 조회
-        const todaySchedules = await this.scheduleModel
+        // 모든 일정 조회
+        const allSchedules = await this.scheduleModel
           .find({
             workspace: workspace._id,
-            $or: [
-              // 오늘 일반 일정 (start_date가 오늘)
-              {
-                $expr: {
-                  $eq: [
-                    {
-                      $dateToString: {
-                        format: "%Y-%m-%d",
-                        date: "$start_date",
-                      },
-                    },
-                    today,
-                  ],
-                },
-                is_anniversary: false,
-              },
-              // 오늘 기념일 (월-일이 오늘)
-              {
-                $expr: {
-                  $eq: [
-                    {
-                      $dateToString: {
-                        format: "%m-%d",
-                        date: "$start_date",
-                      },
-                    },
-                    todayMMDD,
-                  ],
-                },
-                is_anniversary: true,
-              },
-            ],
           })
           .exec();
+
+        // 자바스크립트에서 필터링
+        const todaySchedules = allSchedules.filter(schedule => {
+          if (schedule.is_anniversary) {
+            // 기념일은 월-일 형식으로 비교
+            const scheduleMMDD = dayjs(schedule.start_date).format("MM-DD");
+            return scheduleMMDD === todayMMDD;
+          } else {
+            // 일반 일정은 날짜 전체로 비교
+            const scheduleDate = dayjs(schedule.start_date).format("YYYY-MM-DD");
+            return scheduleDate === today;
+          }
+        });
 
         if (!todaySchedules || todaySchedules.length === 0) {
           this.logger.debug(

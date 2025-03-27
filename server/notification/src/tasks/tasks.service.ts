@@ -163,7 +163,7 @@ export class TasksService {
                     {
                       $dateToString: {
                         format: "%m-%d",
-                        date: { $toDate: "$start_date" },
+                        date: "$start_date",
                       },
                     },
                     todayMMDD,
@@ -177,7 +177,7 @@ export class TasksService {
                     {
                       $dateToString: {
                         format: "%m-%d",
-                        date: { $toDate: "$start_date" },
+                        date: "$start_date",
                       },
                     },
                     tomorrowMMDD,
@@ -295,14 +295,14 @@ export class TasksService {
             $or: [
               {
                 start_date: {
-                  $gte: { $toDate: todayDate },
-                  $lt: { $toDate: tomorrowDate },
+                  $gte: todayDate,
+                  $lt: tomorrowDate,
                 },
               },
               {
                 end_date: {
-                  $gte: { $toDate: todayDate },
-                  $lt: { $toDate: tomorrowDate },
+                  $gte: todayDate,
+                  $lt: tomorrowDate,
                 },
               },
             ],
@@ -468,7 +468,7 @@ export class TasksService {
                     {
                       $dateToString: {
                         format: "%Y-%m-%d",
-                        date: { $toDate: "$start_date" },
+                        date: "$start_date",
                       },
                     },
                     today,
@@ -483,7 +483,7 @@ export class TasksService {
                     {
                       $dateToString: {
                         format: "%m-%d",
-                        date: { $toDate: "$start_date" },
+                        date: "$start_date",
                       },
                     },
                     todayMMDD,

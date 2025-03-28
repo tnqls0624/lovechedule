@@ -257,31 +257,23 @@ export class TasksService {
           continue;
         }
 
-        // 오늘 날짜의 스케줄 조회 (is_anniversary=false인 일반 일정만)
-        const todayDate = dayjs(today).startOf("day").toDate();
-        const tomorrowDate = dayjs(todayDate).add(1, "day").toDate();
-
-        // workspace._id에 해당하는 일정 조회
-        const schedules = await this.scheduleModel
+        // 모든 일정 조회 (기념일 제외)
+        const allSchedules = await this.scheduleModel
           .find({
             workspace: workspace._id,
-            is_anniversary: false, // 기념일이 아닌 일반 일정만 조회
-            $or: [
-              {
-                start_date: {
-                  $gte: todayDate,
-                  $lt: tomorrowDate,
-                },
-              },
-              {
-                end_date: {
-                  $gte: todayDate,
-                  $lt: tomorrowDate,
-                },
-              },
-            ],
+            is_anniversary: false,
           })
           .exec();
+          
+        // 자바스크립트에서 날짜 필터링 (start_date나 end_date가 오늘인 경우)
+        const todayDateString = today; // YYYY-MM-DD 형식
+        const schedules = allSchedules.filter(schedule => {
+          // 문자열로 저장된 날짜를 dayjs로 변환하여 YYYY-MM-DD 형식으로 비교
+          const startDate = dayjs(schedule.start_date).format('YYYY-MM-DD');
+          const endDate = dayjs(schedule.end_date).format('YYYY-MM-DD');
+          
+          return startDate === todayDateString || endDate === todayDateString;
+        });
 
         this.logger.log(
           `워크스페이스 ${workspace._id}의 오늘 일정: ${schedules.length}개`

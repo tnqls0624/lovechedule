@@ -287,6 +287,10 @@ export class TasksService {
             workspace: workspace._id,
             is_anniversary: false,
           })
+          .populate({
+            path: "participants",
+            model: this.userModel,
+          })
           .exec();
 
         // 자바스크립트에서 날짜 필터링 (start_date나 end_date가 오늘이나 내일인 경우)

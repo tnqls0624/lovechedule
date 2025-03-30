@@ -122,6 +122,8 @@ export class TasksService {
             anniversary_alarm: true,
             fcm_token: { $exists: true, $ne: null },
           },
+          select:
+            "name email push_enabled schedule_alarm anniversary_alarm fcm_token",
         })
         .exec();
 
@@ -158,7 +160,6 @@ export class TasksService {
             workspace: workspace._id,
             is_anniversary: true,
           })
-          .populate("participants")
           .exec();
 
         this.logger.log(
@@ -264,6 +265,8 @@ export class TasksService {
             schedule_alarm: true,
             fcm_token: { $exists: true, $ne: null },
           },
+          select:
+            "name email push_enabled schedule_alarm anniversary_alarm fcm_token",
         })
         .exec();
 
@@ -287,10 +290,6 @@ export class TasksService {
           .find({
             workspace: workspace._id,
             is_anniversary: false,
-          })
-          .populate({
-            path: "participants",
-            model: this.userModel,
           })
           .exec();
 
@@ -476,6 +475,8 @@ export class TasksService {
             push_enabled: true,
             fcm_token: { $exists: true, $ne: null },
           },
+          select:
+            "name email push_enabled schedule_alarm anniversary_alarm fcm_token",
         })
         .exec();
 

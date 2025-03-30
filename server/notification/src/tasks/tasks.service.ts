@@ -199,14 +199,7 @@ export class TasksService {
           // 알림 메시지 생성
           const titlePrefix = isToday ? "오늘" : "내일";
           const notificationTitle = `${titlePrefix}의 기념일 알림`;
-          let notificationBody = `${titlePrefix}은 ${anniversary.title} 기념일입니다.`;
-
-          // 반복 유형에 따른 문구 추가
-          if (anniversary.repeat_type === "yearly") {
-            notificationBody = `${titlePrefix}은 매년 반복되는 ${anniversary.title} 기념일입니다.`;
-          } else if (anniversary.repeat_type === "monthly") {
-            notificationBody = `${titlePrefix}은 매월 반복되는 ${anniversary.title} 기념일입니다.`;
-          }
+          let notificationBody = `${anniversary.title}`;
 
           // 각 사용자에게 알림 전송
           for (const user of users) {
@@ -340,15 +333,8 @@ export class TasksService {
           const isToday =
             startDate === todayDateString || endDate === todayDateString;
 
-          this.logger.log(
-            `일정 알림 처리 - 일정: ${schedule.title}, 시작일: ${startDate}, 종료일: ${endDate}, 오늘인지 내일인지: ${isToday}`
-          );
-          this.logger.log(`todayDateString: ${todayDateString}`);
-          this.logger.log(`tomorrowDateString: ${tomorrowDateString}`);
           const titlePrefix = isToday ? "오늘" : "내일";
-          this.logger.log(`users: ${users}`);
           for (const user of users) {
-            this.logger.log(`user: ${user}`);
             if (!user.fcm_token) continue; // 안전 검사
 
             totalNotifications++;
@@ -356,7 +342,7 @@ export class TasksService {
               await this.sendPushNotification(
                 user.fcm_token,
                 `${titlePrefix}의 일정 알림`,
-                `${titlePrefix}은 ${schedule.title} 일정이 있습니다.`,
+                `${schedule.title}`,
                 {
                   scheduleId: schedule._id.toString(),
                   workspaceId: workspace._id.toString(),

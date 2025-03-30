@@ -117,6 +117,7 @@ export class TasksService {
         .find()
         .populate({
           path: "users",
+          model: "User",
           match: {
             push_enabled: true,
             anniversary_alarm: true,
@@ -260,6 +261,7 @@ export class TasksService {
         .find()
         .populate({
           path: "users",
+          model: "User",
           match: {
             push_enabled: true,
             schedule_alarm: true,
@@ -471,6 +473,7 @@ export class TasksService {
         .find()
         .populate({
           path: "users",
+          model: "User",
           match: {
             push_enabled: true,
             fcm_token: { $exists: true, $ne: null },

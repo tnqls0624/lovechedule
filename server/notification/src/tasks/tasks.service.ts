@@ -147,8 +147,10 @@ export class TasksService {
         // 날짜 형식: MM-DD로 변환 (연도 제외한 월-일 형식으로 비교)
         const todayMMDD = dayjs(today).format("MM-DD");
         const tomorrowMMDD = dayjs(tomorrow).format("MM-DD");
-        
-        this.logger.log(`기념일 비교 - 오늘(MM-DD): ${todayMMDD}, 내일(MM-DD): ${tomorrowMMDD}`);
+
+        this.logger.log(
+          `기념일 비교 - 오늘(MM-DD): ${todayMMDD}, 내일(MM-DD): ${tomorrowMMDD}`
+        );
 
         // 워크스페이스의 기념일 조회 (Schedule에서 is_anniversary=true인 항목)
         const anniversaries = await this.scheduleModel
@@ -157,14 +159,17 @@ export class TasksService {
             is_anniversary: true,
           })
           .exec();
-          
-        this.logger.log(`워크스페이스 ${workspace._id}의 전체 기념일 수: ${anniversaries.length}개`);
+
+        this.logger.log(
+          `워크스페이스 ${workspace._id}의 전체 기념일 수: ${anniversaries.length}개`
+        );
 
         // 앱 메모리에서 필터링 (MongoDB 쿼리가 아닌 JavaScript로 필터링)
-        const filteredAnniversaries = anniversaries.filter(anniversary => {
+        const filteredAnniversaries = anniversaries.filter((anniversary) => {
           const anniversaryMMDD = dayjs(anniversary.start_date).format("MM-DD");
-          const isMatch = anniversaryMMDD === todayMMDD || anniversaryMMDD === tomorrowMMDD;
-          
+          const isMatch =
+            anniversaryMMDD === todayMMDD || anniversaryMMDD === tomorrowMMDD;
+
           if (isMatch) {
             this.logger.debug(
               `일치하는 기념일: ${anniversary.title}, 날짜: ${anniversary.start_date}, MM-DD 변환: ${anniversaryMMDD}`
@@ -174,7 +179,7 @@ export class TasksService {
               `제외된 기념일: ${anniversary.title}, 날짜: ${anniversary.start_date}, MM-DD 변환: ${anniversaryMMDD}`
             );
           }
-          
+
           return isMatch;
         });
 
@@ -241,7 +246,10 @@ export class TasksService {
   /**
    * 일반 일정 알림 처리 (오늘과 내일)
    */
-  private async processRegularScheduleNotifications(today: string, tomorrow: string) {
+  private async processRegularScheduleNotifications(
+    today: string,
+    tomorrow: string
+  ) {
     try {
       this.logger.log(`일정 알림 처리: ${today}, ${tomorrow}`);
 
@@ -280,46 +288,61 @@ export class TasksService {
             is_anniversary: false,
           })
           .exec();
-          
+
         // 자바스크립트에서 날짜 필터링 (start_date나 end_date가 오늘이나 내일인 경우)
         const todayDateString = today; // YYYY-MM-DD 형식
         const tomorrowDateString = tomorrow; // YYYY-MM-DD 형식
-        
-        this.logger.log(`오늘 날짜: ${todayDateString}, 내일 날짜: ${tomorrowDateString}`);
-        
-        const schedules = allSchedules.filter(schedule => {
+
+        this.logger.log(
+          `오늘 날짜: ${todayDateString}, 내일 날짜: ${tomorrowDateString}`
+        );
+
+        const schedules = allSchedules.filter((schedule) => {
           // ISO 형식의 날짜 문자열을 dayjs로 변환하여 YYYY-MM-DD 형식으로 비교
-          const startDate = dayjs(schedule.start_date).format('YYYY-MM-DD');
-          const endDate = dayjs(schedule.end_date).format('YYYY-MM-DD');
-          
+          const startDate = dayjs(schedule.start_date).format("YYYY-MM-DD");
+          const endDate = dayjs(schedule.end_date).format("YYYY-MM-DD");
+
           this.logger.debug(
             `일정 ${schedule.title}: start_date=${schedule.start_date}(${startDate}), end_date=${schedule.end_date}(${endDate})`
           );
-          
+
           // 오늘이거나 내일인 일정 필터링
-          const isToday = startDate === todayDateString || endDate === todayDateString;
-          const isTomorrow = startDate === tomorrowDateString || endDate === tomorrowDateString;
-          
+          const isToday =
+            startDate === todayDateString || endDate === todayDateString;
+          const isTomorrow =
+            startDate === tomorrowDateString || endDate === tomorrowDateString;
+
           return isToday || isTomorrow;
         });
 
         this.logger.log(
           `워크스페이스 ${workspace._id}의 오늘/내일 일정: ${schedules.length}개`
         );
-        
+
         for (const schedule of schedules) {
-          this.logger.log(`필터링된 일정: ${schedule.title}, 시작일: ${schedule.start_date}, 종료일: ${schedule.end_date}`);
+          this.logger.log(
+            `필터링된 일정: ${schedule.title}, 시작일: ${schedule.start_date}, 종료일: ${schedule.end_date}`
+          );
         }
 
         // 각 스케줄에 대해 알림 전송
         for (const schedule of schedules) {
           // 일정이 오늘인지 내일인지 확인
-          const startDate = dayjs(schedule.start_date).format('YYYY-MM-DD');
-          const endDate = dayjs(schedule.end_date).format('YYYY-MM-DD');
-          const isToday = startDate === todayDateString || endDate === todayDateString;
+          const startDate = dayjs(schedule.start_date).format("YYYY-MM-DD");
+          const endDate = dayjs(schedule.end_date).format("YYYY-MM-DD");
+
+          const isToday =
+            startDate === todayDateString || endDate === todayDateString;
+
+          this.logger.log(
+            `일정 알림 처리 - 일정: ${schedule.title}, 시작일: ${startDate}, 종료일: ${endDate}, 오늘인지 내일인지: ${isToday}`
+          );
+          this.logger.log(`todayDateString: ${todayDateString}`);
+          this.logger.log(`tomorrowDateString: ${tomorrowDateString}`);
           const titlePrefix = isToday ? "오늘" : "내일";
-          
+          this.logger.log(`users: ${users}`);
           for (const user of users) {
+            this.logger.log(`user: ${user}`);
             if (!user.fcm_token) continue; // 안전 검사
 
             totalNotifications++;
@@ -430,8 +453,10 @@ export class TasksService {
       // 오늘 날짜 형식: YYYY-MM-DD
       const today = this.getTodayDate();
       const todayMMDD = dayjs(today).format("MM-DD");
-      
-      this.logger.log(`오늘 날짜(YYYY-MM-DD): ${today}, MM-DD 형식: ${todayMMDD}`);
+
+      this.logger.log(
+        `오늘 날짜(YYYY-MM-DD): ${today}, MM-DD 형식: ${todayMMDD}`
+      );
 
       let totalUsers = 0;
       let successCount = 0;
@@ -468,30 +493,38 @@ export class TasksService {
             workspace: workspace._id,
           })
           .exec();
-        
-        this.logger.log(`워크스페이스 ${workspace._id}의 전체 일정 수: ${allSchedules.length}개`);
+
+        this.logger.log(
+          `워크스페이스 ${workspace._id}의 전체 일정 수: ${allSchedules.length}개`
+        );
 
         // 자바스크립트에서 필터링
-        const todaySchedules = allSchedules.filter(schedule => {
+        const todaySchedules = allSchedules.filter((schedule) => {
           if (schedule.is_anniversary) {
             // 기념일은 월-일 형식으로 비교
             const scheduleMMDD = dayjs(schedule.start_date).format("MM-DD");
             const isToday = scheduleMMDD === todayMMDD;
-            
+
             if (isToday) {
-              this.logger.debug(`오늘 기념일 일정: ${schedule.title}, start_date=${schedule.start_date}, MMDD=${scheduleMMDD}`);
+              this.logger.debug(
+                `오늘 기념일 일정: ${schedule.title}, start_date=${schedule.start_date}, MMDD=${scheduleMMDD}`
+              );
             }
-            
+
             return isToday;
           } else {
             // 일반 일정은 날짜 전체로 비교
-            const scheduleDate = dayjs(schedule.start_date).format("YYYY-MM-DD");
+            const scheduleDate = dayjs(schedule.start_date).format(
+              "YYYY-MM-DD"
+            );
             const isToday = scheduleDate === today;
-            
+
             if (isToday) {
-              this.logger.debug(`오늘 일반 일정: ${schedule.title}, start_date=${schedule.start_date}, 변환=${scheduleDate}`);
+              this.logger.debug(
+                `오늘 일반 일정: ${schedule.title}, start_date=${schedule.start_date}, 변환=${scheduleDate}`
+              );
             }
-            
+
             return isToday;
           }
         });

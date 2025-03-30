@@ -74,13 +74,13 @@ export class Workspace {
       together: '👩‍❤️‍👨'
     }
   })
-  emoji: any
+  emoji: any;
 
   @Expose()
   @Prop({
-    type: String,
+    type: String
   })
-  thumbnail_image: string
+  thumbnail_image: string;
 }
 
 export const WorkspaceSchema = SchemaFactory.createForClass(Workspace);

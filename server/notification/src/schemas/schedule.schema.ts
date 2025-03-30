@@ -49,7 +49,7 @@ export class Schedule {
     type: [{ type: Types.ObjectId, ref: "User" }],
     default: [],
   })
-  participants: string[];
+  participants: User[] | string[];
 
   // @Expose()
   // @Type(() => Tag)

@@ -158,6 +158,7 @@ export class TasksService {
             workspace: workspace._id,
             is_anniversary: true,
           })
+          .populate("participants")
           .exec();
 
         this.logger.log(

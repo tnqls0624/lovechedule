@@ -46,6 +46,7 @@ export class AuthService {
               data.data.kakao_account.profile.thumbnail_image_url,
             invite_code
           };
+          break;
         }
         case LoginType.APPLE: {
           social_data = {
@@ -54,11 +55,13 @@ export class AuthService {
             name: body.name,
             invite_code
           };
+          break;
         }
       }
-
+      console.log(social_data);
       let user = await this.userRepository.findByEmail(social_data.email);
 
+      console.log(user);
       if (!user) {
         user = await this.authRepository.insert(social_data);
       }

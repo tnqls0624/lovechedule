@@ -58,10 +58,8 @@ export class AuthService {
           break;
         }
       }
-      console.log(social_data);
       let user = await this.userRepository.findByEmail(social_data.email);
 
-      console.log(user);
       if (!user) {
         user = await this.authRepository.insert(social_data);
       }

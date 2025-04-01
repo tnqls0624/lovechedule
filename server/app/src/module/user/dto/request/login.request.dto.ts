@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 import { LoginType } from 'src/common/type/user';
 
 export class LoginRequestDto {
@@ -17,4 +17,22 @@ export class LoginRequestDto {
   })
   @IsString()
   readonly login_type: string;
+
+  // email
+  @ApiProperty({
+    example: 'test@test.com',
+    description: '이메일'
+  })
+  @IsString()
+  @IsOptional()
+  readonly email: string;
+
+  // name
+  @ApiProperty({
+    example: '홍길동',
+    description: '이름'
+  })
+  @IsString()
+  @IsOptional()
+  readonly name: string;
 }

@@ -1,10 +1,11 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { WeatherService } from '../service/weather.service';
 import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags
 } from '@nestjs/swagger';
 import { ResponseDto } from '../../../common/dto/response.dto';
@@ -21,14 +22,14 @@ export class WeatherController {
     type: ResponseDto
   })
   @ApiBearerAuth()
-  @ApiParam({
+  @ApiQuery({
     type: 'string',
     name: 'city',
-    example: 'Seoul-si'
+    required: false,
+    example: 'Seoul'
   })
-  // @Serialize(WorkspaceResponseDto)
-  @Get('/:city')
-  findByCity(@Param('city') city: string) {
+  @Get()
+  findByCity(@Query('city') city: string) {
     return this.weatherService.getWeather(city);
   }
 }

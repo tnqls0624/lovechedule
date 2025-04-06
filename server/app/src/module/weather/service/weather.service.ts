@@ -38,6 +38,17 @@ export class WeatherService {
 
   async getWeather(city: string) {
     try {
+      if (!city) {
+        const keys = await this.cacheGenerator.keysCache(`weather:*`);
+        const weatherPromises = Array.isArray(keys)
+          ? keys.map((key) => this.cacheGenerator.getCache(key))
+          : [];
+
+        // 3. 모든 결과를 기다림
+        const weatherResults = await Promise.all(weatherPromises);
+
+        return weatherResults;
+      }
       const weather = await this.cacheGenerator.getCache(`weather:${city}`);
       return weather;
     } catch (e) {

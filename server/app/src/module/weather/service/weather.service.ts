@@ -12,7 +12,7 @@ export class WeatherService {
   ) {}
   private readonly logger = new Logger(WeatherService.name);
 
-  @Cron('0 * * * *')
+  @Cron('0 */6 * * *')
   async handleCron() {
     // 한국 주요 도시들의 OpenWeatherMap city ID
     const allCityIds = [
@@ -33,7 +33,7 @@ export class WeatherService {
       '1838716', // 부천 (Bucheon)
       '1838343', // 평택 (Pyeongtaek)
       '1897122', // 남양주 (Namyangju)
-      '1832157', // 여수 (Yeosu)
+      '1832157', // 여수 (Reisui)
       '1846052', // 진주 (Jinju)
       '1845759', // 천안 (Cheonan)
       '1832828', // 양산 (Yangsan)
@@ -56,21 +56,67 @@ export class WeatherService {
     try {
       // 각 그룹별로 API 호출
       for (const cityIdGroup of cityIdGroups) {
+        // 1. 현재 날씨 데이터 가져오기
         const cityIdsString = cityIdGroup.join(',');
-        const res = await axios.get(
-          `https://api.openweathermap.org/data/3.0/group?id=${cityIdsString}&lang=kr&units=metric&appid=${process.env.WEATHER_API_KEY}`
+        const currentWeatherRes = await axios.get(
+          `https://api.openweathermap.org/data/2.5/group?id=${cityIdsString}&lang=kr&units=metric&appid=${process.env.WEATHER_API_KEY}`
         );
 
-        const weather_data = res.data;
+        const weather_data = currentWeatherRes.data;
 
+        // 각 도시별 현재 날씨 저장 및 5일 예보 가져오기
         for (const city of weather_data.list) {
           const city_name = city.name;
-          const cache_key = `weather:${city_name}`;
-          await this.cacheGenerator.setCache(cache_key, city, 3600); // TTL 3600초 (1시간)
+          const lat = city.coord.lat;
+          const lon = city.coord.lon;
+
+          // 현재 날씨 데이터 캐싱
+          const current_cache_key = `weather:${city_name}:current`;
+          await this.cacheGenerator.setCache(current_cache_key, city, 21600); // TTL 21600초 (6시간)
+
+          try {
+            // 2. 5일 예보 데이터 가져오기 (3시간 간격, 40개 데이터)
+            const forecastRes = await axios.get(
+              `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&lang=kr&units=metric&appid=${process.env.WEATHER_API_KEY}`
+            );
+
+            // 5일 예보 데이터 캐싱
+            const forecast_cache_key = `weather:${city_name}:forecast`;
+            await this.cacheGenerator.setCache(
+              forecast_cache_key,
+              forecastRes.data,
+              21600
+            );
+
+            // 3. 16일까지의 일일 예보 데이터 가져오기 (유료 API, 이 부분은 구독이 필요할 수 있음)
+            // try {
+            //   // OneCall API를 사용하여 16일 예보 데이터 가져오기 (유료 API)
+            //   const oneCallRes = await axios.get(
+            //     `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly&lang=kr&units=metric&appid=${process.env.WEATHER_API_KEY}`
+            //   );
+
+            //   // 16일 예보 데이터 캐싱 (실제로는 7일까지만 제공될 수 있음)
+            //   const daily_cache_key = `weather:${city_name}:daily`;
+            //   await this.cacheGenerator.setCache(
+            //     daily_cache_key,
+            //     oneCallRes.data,
+            //     3600
+            //   );
+            // } catch (oneCallError) {
+            //   // OneCall API 실패 시 로그 기록 (유료 API일 수 있으므로 무시하고 계속 진행)
+            //   this.logger.warn(
+            //     `Failed to fetch OneCall data for ${city_name}: ${oneCallError.message}`
+            //   );
+            // }
+          } catch (e) {
+            this.logger.error(
+              `Failed to fetch forecast data for ${city_name}: ${e.message}`
+            );
+          }
         }
 
-        // API 호출 간 약간의 지연 추가 (선택사항)
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // API 호출 간 약간의 지연 추가
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       this.logger.log('Weather data has been updated and cached.');
@@ -82,18 +128,32 @@ export class WeatherService {
   async getWeather(city: string) {
     try {
       if (!city) {
-        const keys = await this.cacheGenerator.keysCache(`weather:*`);
+        // 모든 도시의 날씨 데이터 가져오기
+        const keys = await this.cacheGenerator.keysCache(`weather:*:current`);
         const weatherPromises = Array.isArray(keys)
           ? keys.map((key) => this.cacheGenerator.getCache(key))
           : [];
 
-        // 3. 모든 결과를 기다림
         const weatherResults = await Promise.all(weatherPromises);
-
         return weatherResults;
       }
-      const weather = await this.cacheGenerator.getCache(`weather:${city}`);
-      return weather;
+
+      // 특정 도시의 모든 날씨 데이터 가져오기
+      const currentWeather = await this.cacheGenerator.getCache(
+        `weather:${city}:current`
+      );
+      const forecastWeather = await this.cacheGenerator.getCache(
+        `weather:${city}:forecast`
+      );
+      // const dailyWeather = await this.cacheGenerator.getCache(
+      //   `weather:${city}:daily`
+      // );
+
+      return {
+        current: currentWeather,
+        forecast: forecastWeather
+        // daily: dailyWeather
+      };
     } catch (e) {
       this.logger.error(e);
       throw new HttpException(e, e.status);

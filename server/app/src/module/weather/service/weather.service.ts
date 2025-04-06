@@ -16,46 +16,33 @@ export class WeatherService {
   async handleCron() {
     // 한국 주요 도시들의 OpenWeatherMap city ID
     const allCityIds = [
-      '1835848',
-      '1835553',
-      '1838524',
-      '1841811',
-      '1843561',
-      '1845604',
-      '1845457',
-      '1845136',
-      '1841598',
-      '1842616',
-      '1842225',
-      '1842944',
-      '1843137',
-      '1845759',
-      '1846266',
-      '1835895',
-      '1835327',
-      '1839726',
-      '1836553',
-      '1833742',
-      '1838722',
-      '1839652',
-      '1840886',
-      '1840982',
-      '1841597',
-      '1844088',
-      '1846052',
-      '1846095',
-      '1846114',
-      '1846149',
-      '1846265',
-      '1846326',
-      '1846355',
-      '1846898',
-      '1847050',
-      '1835329',
-      '1835235',
-      '1835447',
-      '1835518',
-      '1835224'
+      '1835847', // 서울 (Seoul)
+      '1835553', // 수원 (Suwon)
+      '1838519', // 부산 (Busan)
+      '1841808', // 광주 (Gwangju)
+      '1843564', // 인천 (Incheon)
+      '1845457', // 전주 (Jeonju)
+      '1846266', // 제주 (Jeju)
+      '1841603', // 경주 (Gyeongju)
+      '1843491', // 익산 (Iksan)
+      '1846326', // 창원 (Changwon)
+      '1897000', // 성남 (Seongnam)
+      '1835329', // 대구 (Daegu)
+      '1839071', // 포항 (Pohang)
+      '1833742', // 울산 (Ulsan)
+      '1838716', // 부천 (Bucheon)
+      '1838343', // 평택 (Pyeongtaek)
+      '1897122', // 남양주 (Namyangju)
+      '1832157', // 여수 (Yeosu)
+      '1846052', // 진주 (Jinju)
+      '1845759', // 천안 (Cheonan)
+      '1832828', // 양산 (Yangsan)
+      '1845136', // 춘천 (Chuncheon)
+      '1846918', // 안산 (Ansan)
+      '1846898', // 안양 (Anyang)
+      '1835235', // 대전 (Daejeon)
+      '1841066', // 목포 (Mokpo)
+      '1835648' // 순천 (Suncheon)
     ];
 
     // 도시 ID를 20개씩 그룹으로 나눔 (API 제한 고려)
@@ -71,7 +58,7 @@ export class WeatherService {
       for (const cityIdGroup of cityIdGroups) {
         const cityIdsString = cityIdGroup.join(',');
         const res = await axios.get(
-          `https://api.openweathermap.org/data/2.5/group?id=${cityIdsString}&lang=kr&units=metric&appid=${process.env.WEATHER_API_KEY}`
+          `https://api.openweathermap.org/data/3.0/group?id=${cityIdsString}&lang=kr&units=metric&appid=${process.env.WEATHER_API_KEY}`
         );
 
         const weather_data = res.data;

@@ -31,4 +31,16 @@ export class WeatherController {
   findByCity(@Query('city') city: string) {
     return this.weatherService.getWeather(city);
   }
+
+  @ApiOperation({
+    summary: 'Weather Cache Refresh (테스트용)'
+  })
+  @ApiOkResponse({
+    type: ResponseDto
+  })
+  @ApiBearerAuth()
+  @Get('refresh-cache')
+  async refreshCache() {
+    return this.weatherService.refreshWeatherCache();
+  }
 }

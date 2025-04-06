@@ -15,20 +15,75 @@ export class WeatherService {
   @Cron('0 * * * *')
   async handleCron() {
     // 한국 주요 도시들의 OpenWeatherMap city ID
-    const city_ids =
-      '1835848,1835553,1838524,1841811,1843561,1845604,1845457,1845136,1841598,1842616,1842225,1842944,1843137,1845759,1846266,1835895,1835327,1839726,1836553,1833742,1835895,1838722,1839652,1840886,1840982,1841597,1844088,1846052,1846095,1846114,1846149,1846265,1846326,1846355,1846898,1847050,1835329,1835235,1835447,1835518,1835224,1835967,1836208,1836830,1837055,1837217,1837660,1838519,1838722,1839071,1839652,1840179,1840536,1840886,1840982,1841142,1841598,1841603,1841775,1841976,1842025,1842485,1842518,1842800,1842859,1842936,1842944,1843082,1843137,1843561,1843841,1843847,1844045,1844088,1844411,1844533,1844751,1844788,1845033,1845105,1845136,1845457,1845519,1845604,1845759,1846052,1846095,1846114,1846149,1846266,1846355,1846516,1846735,1846898,1846912,1846918,1846986,1847050,1835648,1835967,1836553,1838073,1839071,1839237,1840536';
+    const allCityIds = [
+      '1835848',
+      '1835553',
+      '1838524',
+      '1841811',
+      '1843561',
+      '1845604',
+      '1845457',
+      '1845136',
+      '1841598',
+      '1842616',
+      '1842225',
+      '1842944',
+      '1843137',
+      '1845759',
+      '1846266',
+      '1835895',
+      '1835327',
+      '1839726',
+      '1836553',
+      '1833742',
+      '1838722',
+      '1839652',
+      '1840886',
+      '1840982',
+      '1841597',
+      '1844088',
+      '1846052',
+      '1846095',
+      '1846114',
+      '1846149',
+      '1846265',
+      '1846326',
+      '1846355',
+      '1846898',
+      '1847050',
+      '1835329',
+      '1835235',
+      '1835447',
+      '1835518',
+      '1835224'
+    ];
+
+    // 도시 ID를 20개씩 그룹으로 나눔 (API 제한 고려)
+    const chunkSize = 20;
+    const cityIdGroups = [];
+
+    for (let i = 0; i < allCityIds.length; i += chunkSize) {
+      cityIdGroups.push(allCityIds.slice(i, i + chunkSize));
+    }
 
     try {
-      const res = await axios.get(
-        `https://api.openweathermap.org/data/2.5/group?id=${city_ids}&lang=kr&units=metric&appid=${process.env.WEATHER_API_KEY}`
-      );
+      // 각 그룹별로 API 호출
+      for (const cityIdGroup of cityIdGroups) {
+        const cityIdsString = cityIdGroup.join(',');
+        const res = await axios.get(
+          `https://api.openweathermap.org/data/2.5/group?id=${cityIdsString}&lang=kr&units=metric&appid=${process.env.WEATHER_API_KEY}`
+        );
 
-      const weather_data = res.data;
+        const weather_data = res.data;
 
-      for (const city of weather_data.list) {
-        const city_name = city.name;
-        const cache_key = `weather:${city_name}`;
-        await this.cacheGenerator.setCache(cache_key, city, 3600); // TTL 3600초 (1시간)
+        for (const city of weather_data.list) {
+          const city_name = city.name;
+          const cache_key = `weather:${city_name}`;
+          await this.cacheGenerator.setCache(cache_key, city, 3600); // TTL 3600초 (1시간)
+        }
+
+        // API 호출 간 약간의 지연 추가 (선택사항)
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       this.logger.log('Weather data has been updated and cached.');
@@ -55,6 +110,38 @@ export class WeatherService {
     } catch (e) {
       this.logger.error(e);
       throw new HttpException(e, e.status);
+    }
+  }
+
+  /**
+   * 테스트를 위해 날씨 캐시를 수동으로 갱신하는 메소드
+   */
+  async refreshWeatherCache() {
+    try {
+      this.logger.log('수동으로 날씨 데이터 갱신 시작');
+      await this.handleCron();
+
+      // 캐시된 모든 날씨 키 조회
+      const keys = await this.cacheGenerator.keysCache('weather:*');
+      const cityNames = Array.isArray(keys)
+        ? keys.map((key) => key.replace('weather:', ''))
+        : [];
+
+      return {
+        success: true,
+        message: '날씨 데이터가 성공적으로 갱신되었습니다.',
+        cachedCities: cityNames
+      };
+    } catch (error) {
+      this.logger.error('날씨 데이터 수동 갱신 중 오류 발생:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: '날씨 데이터 갱신 중 오류가 발생했습니다.',
+          error: error.message
+        },
+        500
+      );
     }
   }
 }

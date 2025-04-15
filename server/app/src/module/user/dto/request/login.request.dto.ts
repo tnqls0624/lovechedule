@@ -35,4 +35,13 @@ export class LoginRequestDto {
   @IsString()
   @IsOptional()
   readonly name: string;
+
+  // birthday
+  @ApiProperty({
+    example: '1990-01-01',
+    description: '생년월일'
+  })
+  @IsString()
+  @IsOptional()
+  readonly birthday: string;
 }

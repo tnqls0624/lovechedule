@@ -57,6 +57,16 @@ export class AuthService {
           };
           break;
         }
+        case LoginType.EMAIL: {
+          social_data = {
+            login_type: LoginType.EMAIL,
+            email: body.email,
+            name: body.name,
+            birthday: body.birthday,
+            invite_code
+          };
+          break;
+        }
       }
       let user = await this.userRepository.findByEmail(social_data.email);
 

@@ -1,5 +1,5 @@
 export enum LoginType {
-  BASIC = 'BASIC',
+  EMAIL = 'EMAIL',
   KAKAO = 'KAKAO',
   NAVER = 'NAVER',
   GOOGLE = 'GOOGLE',

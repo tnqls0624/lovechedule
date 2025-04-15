@@ -72,7 +72,7 @@ export class WeatherService {
 
           // 현재 날씨 데이터 캐싱
           const current_cache_key = `weather:${city_name}:current`;
-          await this.cacheGenerator.setCache(current_cache_key, city, 21600); // TTL 21600초 (6시간)
+          await this.cacheGenerator.setCache(current_cache_key, city, 10800); // TTL 10800초 (3시간)
 
           try {
             // 2. 5일 예보 데이터 가져오기 (3시간 간격, 40개 데이터)
@@ -85,7 +85,7 @@ export class WeatherService {
             await this.cacheGenerator.setCache(
               forecast_cache_key,
               forecastRes.data,
-              21600
+              10800
             );
 
             // 3. 16일까지의 일일 예보 데이터 가져오기 (유료 API, 이 부분은 구독이 필요할 수 있음)

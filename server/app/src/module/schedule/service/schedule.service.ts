@@ -25,6 +25,7 @@ import { HttpService } from '@nestjs/axios';
 import { ClientGrpc, Client, Transport } from '@nestjs/microservices';
 import { join } from 'path';
 import { Observable } from 'rxjs';
+import KoreanLunarCalendar from 'korean-lunar-calendar';
 
 // NotificationService gRPC 인터페이스 정의
 interface NotificationService {
@@ -173,22 +174,84 @@ export class ScheduleService implements OnModuleInit {
           }
         );
 
+      // 음력/양력 표시 포함하여 스케줄 추가
       schedules.forEach((schedule) => {
+        // 시간 정보 유지하며 날짜 포맷팅
+        const formattedStartDate = dayjs(schedule.start_date).format(
+          'YYYY-MM-DD HH:mm'
+        );
+        const formattedEndDate = dayjs(schedule.end_date).format(
+          'YYYY-MM-DD HH:mm'
+        );
+
+        // calendar_type에 따라 반대 타입 날짜도 계산
+        let altDateDisplay = '';
+
+        // 음력 일정이면 양력 날짜 표시
+        if (schedule.calendar_type === 'lunar') {
+          try {
+            const calendar = new KoreanLunarCalendar();
+
+            // 시작 날짜에서 음력 정보 추출
+            const startDate = dayjs(schedule.start_date);
+            const lunarYear = startDate.year();
+            const lunarMonth = startDate.month() + 1; // 0-11 -> 1-12
+            const lunarDay = startDate.date();
+
+            // 음력->양력 변환 시도
+            if (calendar.setLunarDate(lunarYear, lunarMonth, lunarDay, false)) {
+              const solarDate = calendar.getSolarCalendar();
+              // 양력으로 변환된 날짜를 표시
+              altDateDisplay = `양력: ${solarDate.year}-${String(solarDate.month).padStart(2, '0')}-${String(solarDate.day).padStart(2, '0')}`;
+            }
+          } catch (error) {
+            this.logger.error(`음력->양력 변환 오류: ${error.message}`);
+            // 변환 실패 시 기본 포맷만 유지
+            altDateDisplay = `양력: ${formattedStartDate.substring(0, 10)}`;
+          }
+        }
+        // 양력 일정이면 음력 날짜 표시 (선택적)
+        else if (schedule.calendar_type === 'solar') {
+          try {
+            const calendar = new KoreanLunarCalendar();
+
+            // 시작 날짜에서 양력 정보 추출
+            const startDate = dayjs(schedule.start_date);
+            const solarYear = startDate.year();
+            const solarMonth = startDate.month() + 1; // 0-11 -> 1-12
+            const solarDay = startDate.date();
+
+            // 양력->음력 변환 시도
+            if (calendar.setSolarDate(solarYear, solarMonth, solarDay)) {
+              const lunarDate = calendar.getLunarCalendar();
+              // 음력으로 변환된 날짜를 표시 (윤달 여부 포함)
+              altDateDisplay = `음력: ${lunarDate.year}-${String(lunarDate.month).padStart(2, '0')}-${String(lunarDate.day).padStart(2, '0')}${lunarDate.intercalation ? ' (윤)' : ''}`;
+            }
+          } catch (error) {
+            this.logger.error(`양력->음력 변환 오류: ${error.message}`);
+            // 변환 실패 시 표시하지 않음
+          }
+        }
+
         combinedCalendar.push({
           _id: schedule._id,
-          start_date: dayjs(schedule.start_date).format('YYYY-MM-DD HH:mm'),
-          end_date: dayjs(schedule.end_date).format('YYYY-MM-DD HH:mm'),
+          start_date: formattedStartDate,
+          end_date: formattedEndDate,
           title: schedule.title,
           memo: schedule.memo,
           participants: schedule.participants,
           is_holiday: false,
           is_anniversary: schedule.is_anniversary,
-          repeat_type: schedule.repeat_type // ✅ 반복 유형 추가
+          repeat_type: schedule.repeat_type,
+          calendar_type: schedule.calendar_type,
+          alt_date_display: altDateDisplay
         });
       });
 
       combinedCalendar.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        (a, b) =>
+          new Date(a.date || a.start_date).getTime() -
+          new Date(b.date || b.start_date).getTime()
       );
 
       return combinedCalendar;
@@ -321,6 +384,7 @@ export class ScheduleService implements OnModuleInit {
             id: userObj._id,
             name: userObj.name,
             fcm_token: userObj.fcm_token ? '있음' : '없음',
+            calendar_type: userObj.calendar_type,
             push_enabled: userObj.push_enabled,
             alarm_type: body.is_anniversary
               ? 'anniversary_alarm'

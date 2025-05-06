@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -12,7 +12,7 @@ import { User } from '../../user/schema/user.schema';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
-import { Logger } from '@nestjs/common';
+import KoreanLunarCalendar from 'korean-lunar-calendar';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -96,14 +96,104 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
 
     // year와 month가 있을 경우에만 반복 일정 처리
     if (year) {
+      const calendar = new KoreanLunarCalendar();
       const updatedSchedules = schedules.map((schedule) => {
         const originalStartDate = dayjs(schedule.start_date);
         const originalEndDate = dayjs(schedule.end_date);
+        const scheduleObj = schedule.toObject();
 
+        // 음력 일정 처리
+        if (schedule.calendar_type === 'lunar') {
+          try {
+            // 원본 음력 날짜 정보 추출
+            const originalLunarMonth = originalStartDate.month() + 1; // 0-11 -> 1-12
+            const originalLunarDay = originalStartDate.date();
+
+            // 현재 조회하는 연도에 맞는 양력 날짜 구하기
+            const targetYear = parseInt(year);
+            const targetMonth = month ? parseInt(month) : originalLunarMonth;
+
+            // 매월 반복 일정 처리
+            if (schedule.repeat_type === 'monthly' && month) {
+              // 매월 같은 음력 날짜(일)에 반복
+              if (
+                calendar.setLunarDate(
+                  targetYear,
+                  targetMonth,
+                  originalLunarDay,
+                  false
+                )
+              ) {
+                const solarDate = calendar.getSolarCalendar();
+
+                // 변환된 양력 날짜 적용
+                const newStartDate = dayjs(
+                  `${solarDate.year}-${solarDate.month}-${solarDate.day}`
+                )
+                  .hour(originalStartDate.hour())
+                  .minute(originalStartDate.minute())
+                  .second(originalStartDate.second());
+
+                const dayDiff = originalEndDate.diff(originalStartDate, 'day');
+                const newEndDate = newStartDate
+                  .add(dayDiff, 'day')
+                  .hour(originalEndDate.hour())
+                  .minute(originalEndDate.minute())
+                  .second(originalEndDate.second());
+
+                scheduleObj.start_date = newStartDate.format(
+                  'YYYY-MM-DD HH:mm:ss'
+                );
+                scheduleObj.end_date = newEndDate.format('YYYY-MM-DD HH:mm:ss');
+              }
+            }
+            // 매년 반복 일정 처리
+            else if (schedule.repeat_type === 'yearly') {
+              // 매년 같은 음력 날짜(월/일)에 반복
+              if (
+                calendar.setLunarDate(
+                  targetYear,
+                  originalLunarMonth,
+                  originalLunarDay,
+                  false
+                )
+              ) {
+                const solarDate = calendar.getSolarCalendar();
+
+                // 변환된 양력 날짜 적용
+                const newStartDate = dayjs(
+                  `${solarDate.year}-${solarDate.month}-${solarDate.day}`
+                )
+                  .hour(originalStartDate.hour())
+                  .minute(originalStartDate.minute())
+                  .second(originalStartDate.second());
+
+                const dayDiff = originalEndDate.diff(originalStartDate, 'day');
+                const newEndDate = newStartDate
+                  .add(dayDiff, 'day')
+                  .hour(originalEndDate.hour())
+                  .minute(originalEndDate.minute())
+                  .second(originalEndDate.second());
+
+                scheduleObj.start_date = newStartDate.format(
+                  'YYYY-MM-DD HH:mm:ss'
+                );
+                scheduleObj.end_date = newEndDate.format('YYYY-MM-DD HH:mm:ss');
+              }
+            }
+          } catch (error) {
+            this.logger.error(`음력 날짜 변환 오류: ${error.message}`);
+            // 변환 실패 시 원본 날짜 유지
+          }
+
+          return scheduleObj;
+        }
+
+        // 기존 로직 - 양력 반복 일정 처리
         // 매월 반복 일정 처리 (현재 월로 날짜 변경)
         if (schedule.repeat_type === 'monthly' && month) {
           return {
-            ...schedule.toObject(),
+            ...scheduleObj,
             start_date: dayjs(`${year}-${month}-${originalStartDate.date()}`)
               .tz()
               .format('YYYY-MM-DD HH:mm:ss'),
@@ -116,7 +206,7 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
         // 매년 반복 일정 처리 (현재 연도로 날짜 변경)
         if (schedule.repeat_type === 'yearly') {
           return {
-            ...schedule.toObject(),
+            ...scheduleObj,
             start_date: dayjs(
               `${year}-${originalStartDate.month() + 1}-${originalStartDate.date()}`
             )
@@ -131,7 +221,7 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
         }
 
         // 일반 일정은 그대로 반환
-        return schedule.toObject();
+        return scheduleObj;
       });
 
       return updatedSchedules;
@@ -197,6 +287,7 @@ export class ScheduleRepositoryImplement implements ScheduleRepository {
       memo: body.memo,
       start_date: body.start_date,
       end_date: body.end_date,
+      calendar_type: body.calendar_type,
       // alram: body.alarm,
       repeat_type: body.repeat_type,
       participants: object_ids,

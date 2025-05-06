@@ -3,6 +3,7 @@ import { Expose, Transform, Type } from 'class-transformer';
 import { Document, Types } from 'mongoose';
 import { User } from '../../user/schema/user.schema';
 import { Workspace } from '../../workspace/schema/workspace.schema';
+import { CalendarType } from '../dto/request/create-schedule.request.dto';
 
 export type ScheduleDocument = Schedule & Document<Types.ObjectId>;
 
@@ -63,6 +64,11 @@ export class Schedule {
   //   default: []
   // })
   // tags: Tag[];
+
+  // 양력, 음력
+  @Expose()
+  @Prop({ type: String, enum: CalendarType, default: CalendarType.SOLAR })
+  calendar_type: CalendarType;
 
   @Expose()
   @Type(() => Workspace)

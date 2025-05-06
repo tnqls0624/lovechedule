@@ -76,4 +76,12 @@ export class UpdateScheduleRequestDto {
   @IsBoolean()
   @Optional()
   readonly is_anniversary: boolean;
+
+  @ApiProperty({
+    type: String,
+    example: 'solar',
+    description: '양력, 음력'
+  })
+  @Optional()
+  readonly calendar_type: 'solar' | 'lunar';
 }

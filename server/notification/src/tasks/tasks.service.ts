@@ -493,7 +493,6 @@ export class TasksService {
           `워크스페이스 ${workspace._id}의 전체 일정 수: ${allSchedules.length}개`
         );
 
-        // 자바스크립트에서 필터링
         const todaySchedules = allSchedules.filter((schedule) => {
           if (schedule.is_anniversary) {
             // 기념일은 월-일 형식으로 비교

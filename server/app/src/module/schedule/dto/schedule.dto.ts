@@ -24,6 +24,9 @@ export class ScheduleDto {
   alram_date: string;
 
   @Expose()
+  calendar_type: 'solar' | 'lunar';
+
+  @Expose()
   @Type(() => User)
   participants: Types.ObjectId[];
 

@@ -7,20 +7,25 @@ import {
   IsString
 } from 'class-validator';
 
-class TagDto {
-  @IsString()
-  @IsNotEmpty()
-  color: string;
+// class TagDto {
+//   @IsString()
+//   @IsNotEmpty()
+//   color: string;
 
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-}
+//   @IsString()
+//   @IsNotEmpty()
+//   name: string;
+// }
 
 export enum RepeatType {
   NONE = 'none',
   MONTHLY = 'monthly',
   YEARLY = 'yearly'
+}
+
+export enum CalendarType {
+  SOLAR = 'solar',
+  LUNAR = 'lunar'
 }
 
 export class CreateScheduleRequestDto {
@@ -108,4 +113,12 @@ export class CreateScheduleRequestDto {
   @IsBoolean()
   @IsNotEmpty()
   readonly is_anniversary: boolean;
+
+  @ApiProperty({
+    type: String,
+    example: 'solar',
+    description: '양력, 음력'
+  })
+  @IsEnum(CalendarType)
+  readonly calendar_type: CalendarType;
 }

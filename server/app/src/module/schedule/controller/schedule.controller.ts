@@ -9,6 +9,8 @@ import {
   Query,
   UseGuards
 } from '@nestjs/common';
+import { ScheduleService } from '../service/schedule.service';
+import { JwtAuthGuard } from '../../auth/guard';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -17,11 +19,9 @@ import {
   ApiQuery,
   ApiTags
 } from '@nestjs/swagger';
-import { ScheduleService } from '../service/schedule.service';
-import { ResponseDto } from '../../../common/dto/response.dto';
-import { JwtAuthGuard } from '../../auth/guard';
 import { CreateScheduleRequestDto } from '../dto/request/create-schedule.request.dto';
 import { UpdateScheduleRequestDto } from '../dto/request/update-schedule.request.dto';
+import { ResponseDto } from '../../../common/dto/response.dto';
 import { UserDto } from 'src/module/auth/dto/user.dto';
 import { User } from 'src/common/decorator/user.decorator';
 

@@ -7,16 +7,36 @@ export type WorkspaceDocument = Workspace & Document<Types.ObjectId>;
 
 export class Tag {
   @Expose()
-  @Transform(({ obj }) => obj._id.toString())
-  _id: Types.ObjectId;
+  @Prop({
+    type: {
+      color: { type: String, required: true }
+    }
+  })
+  anniversary: { color: string };
 
   @Expose()
-  @Prop({ required: true, type: String })
-  color: string;
+  @Prop({
+    type: {
+      color: { type: String, required: true }
+    }
+  })
+  together: { color: string };
 
   @Expose()
-  @Prop({ required: true, type: String })
-  name: string;
+  @Prop({
+    type: {
+      color: { type: String, required: true }
+    }
+  })
+  guest: { color: string };
+
+  @Expose()
+  @Prop({
+    type: {
+      color: { type: String, required: true }
+    }
+  })
+  master: { color: string };
 }
 
 @Schema({
@@ -41,40 +61,16 @@ export class Workspace {
   })
   users: string[];
 
-  // @Expose()
-  // @Type(() => Tag)
-  // @Prop({
-  //   type: [
-  //     {
-  //       color: { type: String, required: true },
-  //       name: { type: String, required: true }
-  //     }
-  //   ],
-  //   default: []
-  // })
-  // tags: Tag[];
-
-  // @Expose()
-  // @Prop({
-  //   type: String,
-  //   enum: WorkspaceStatus,
-  //   default: WorkspaceStatus.PENDING
-  // })
-  // status: WorkspaceStatus;
+  @Expose()
+  @Type(() => Tag)
+  @Prop({
+    type: Tag
+  })
+  tags: Tag;
 
   @Expose()
   @Prop({ type: String, required: true })
   love_day: string;
-
-  @Expose()
-  @Prop({
-    type: Object,
-    default: {
-      anniversary: '🎉',
-      together: '👩‍❤️‍👨'
-    }
-  })
-  emoji: any;
 
   @Expose()
   @Prop({

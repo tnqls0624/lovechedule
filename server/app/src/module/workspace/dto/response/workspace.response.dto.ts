@@ -23,13 +23,10 @@ export class WorkspaceResponseDto {
 
   @Expose()
   @Type(() => Tag)
-  readonly tags: Tag[];
+  readonly tags: Tag;
 
   @Expose()
   readonly love_day: string;
-
-  @Expose()
-  readonly emoji: any;
 
   @Expose()
   readonly thumbnail_image: string;

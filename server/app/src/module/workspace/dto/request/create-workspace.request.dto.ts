@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsObject, IsString } from 'class-validator';
+import { Tag } from '../../schema/workspace.schema';
 
 export class CreateWorkspaceRequestDto {
   @ApiProperty({
@@ -18,13 +19,15 @@ export class CreateWorkspaceRequestDto {
 
   @ApiProperty({
     example: {
-      aniversary: '🎉',
-      together: '👩‍❤️‍👨'
+      anniversary: { name: '기념일', color: '#FF0000' },
+      together: { name: '함께', color: '#00FF00' },
+      guest: { name: '상대방', color: '#0000FF' },
+      master: { name: '나', color: '#FF00FF' }
     },
-    description: '이모지'
+    description: '태그'
   })
   @IsObject()
-  readonly emoji: object;
+  readonly tags: Tag;
 
   @ApiProperty({
     example: 'http://test.com/image',

@@ -278,31 +278,33 @@ export class ScheduleService implements OnModuleInit {
       const workspace: any = await this.workspaceRepository.findOneById(
         new Types.ObjectId(_id)
       );
-      const settingResult = {
-        master: {
-          name: workspace.master.name,
-          emoji: workspace.emoji.master,
-          count: 0
-        },
-        guest: {
-          name: '',
-          emoji: workspace.emoji.guest,
-          count: 0
-        },
-        together: {
-          emoji: workspace.emoji.together,
-          count: 0
-        },
-        anniversary: {
-          emoji: workspace.emoji.anniversary,
-          count: 0
-        }
-      };
-
       const master_id: string = String(workspace.master._id);
       const guest_user: any = workspace.users.find(
         (user: any) => user._id.toString() !== master_id.toString()
       );
+
+      const settingResult = {
+        master: {
+          name: workspace.master.name,
+          tags: workspace.tags.master,
+          count: 0
+        },
+        guest: {
+          name: guest_user.name,
+          tags: workspace.tags.guest,
+          count: 0
+        },
+        together: {
+          name: '함께',
+          tags: workspace.tags.together,
+          count: 0
+        },
+        anniversary: {
+          name: '기념일',
+          tags: workspace.tags.anniversary,
+          count: 0
+        }
+      };
 
       const master_schedule_count = await this.scheduleRepository.count(
         new Types.ObjectId(_id),

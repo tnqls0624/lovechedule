@@ -52,16 +52,6 @@ export class Workspace {
 
   @Expose()
   @Prop({
-    type: Object,
-    default: {
-      anniversary: "🎉",
-      together: "👩‍❤️‍👨",
-    },
-  })
-  emoji: any;
-
-  @Expose()
-  @Prop({
     type: String,
   })
   thumbnail_image: string;

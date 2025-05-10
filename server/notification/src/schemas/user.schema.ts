@@ -31,12 +31,6 @@ export class User {
   @Prop({
     type: String,
   })
-  emoji: string;
-
-  @Expose()
-  @Prop({
-    type: String,
-  })
   gender: string;
 
   @Expose()

@@ -3,5 +3,6 @@ export enum LoginType {
   KAKAO = 'KAKAO',
   NAVER = 'NAVER',
   GOOGLE = 'GOOGLE',
-  APPLE = 'APPLE'
+  APPLE = 'APPLE',
+  BASIC = 'BASIC'
 }

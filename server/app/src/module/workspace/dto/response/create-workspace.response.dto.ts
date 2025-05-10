@@ -1,4 +1,5 @@
 import { Expose, Transform } from 'class-transformer';
+import { Tag } from '../../schema/workspace.schema';
 
 export class CreateWorkspaceResponseDto {
   @Expose()
@@ -15,7 +16,7 @@ export class CreateWorkspaceResponseDto {
   readonly love_day: string;
 
   @Expose()
-  readonly emoji: any;
+  readonly tags: Tag;
 
   @Expose()
   readonly createAt: Date;

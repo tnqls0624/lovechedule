@@ -8,7 +8,7 @@ import { User } from "../schemas/user.schema";
 import { Schedule } from "../schemas/schedule.schema";
 import { Workspace } from "../schemas/workspace.schema";
 import dayjs from "dayjs";
-const KoreanLunarCalendar = require("korean-lunar-calendar");
+import KoreanLunarCalendar from "korean-lunar-calendar";
 
 @Injectable()
 export class TasksService {
@@ -197,11 +197,11 @@ export class TasksService {
 
             if (isMatch) {
               this.logger.debug(
-                `일치하는 기념일: ${anniversary.title}, 날짜: ${anniversary.start_date}, MM-DD 변환: ${anniversaryMMDD}`
+                `일치하는 기념일: ${anniversary.title}, 원본날짜(${anniversary.calendar_type || "solar"}): ${dayjs(anniversary.start_date).format("YYYY-MM-DD")}, 비교대상날짜(MM-DD): ${anniversaryMMDD}`
               );
             } else {
               this.logger.debug(
-                `제외된 기념일: ${anniversary.title}, 날짜: ${anniversary.start_date}, MM-DD 변환: ${anniversaryMMDD}`
+                `제외된 기념일: ${anniversary.title}, 원본날짜(${anniversary.calendar_type || "solar"}): ${dayjs(anniversary.start_date).format("YYYY-MM-DD")}, 비교대상날짜(MM-DD): ${anniversaryMMDD}`
               );
             }
 
@@ -380,7 +380,7 @@ export class TasksService {
           const endDate = effectiveEndDate.format("YYYY-MM-DD");
 
           this.logger.debug(
-            `일정 ${schedule.title}: start_date=${schedule.start_date}(${startDate}), end_date=${schedule.end_date}(${endDate})`
+            `일정 ${schedule.title}: 원본시작일(${schedule.calendar_type || "solar"})=${dayjs(schedule.start_date).format("YYYY-MM-DD")}(변환된 시작일: ${startDate}), 원본종료일(${schedule.calendar_type || "solar"})=${dayjs(schedule.end_date).format("YYYY-MM-DD")}(변환된 종료일: ${endDate})`
           );
 
           // 오늘이거나 내일인 일정 필터링

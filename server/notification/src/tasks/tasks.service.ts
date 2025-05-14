@@ -216,8 +216,30 @@ export class TasksService {
         // 각 기념일에 대해 알림 데이터 준비
         for (const anniversary of filteredAnniversaries) {
           // 기념일이 오늘인지 내일인지 확인
-          const anniversaryMMDD = dayjs(anniversary.start_date).format("MM-DD");
-          const isToday = anniversaryMMDD === todayMMDD;
+          let effectiveDateForNotification = dayjs(anniversary.start_date);
+          if (
+            (anniversary as any).calendar_type === "lunar" &&
+            anniversary.start_date
+          ) {
+            const solarDate = this.convertLunarToSolar(
+              anniversary.start_date,
+              anniversary.title,
+              "알림용 시작일" // 컨텍스트를 위한 로그 메시지용 문자열
+            );
+            if (solarDate) {
+              effectiveDateForNotification = solarDate;
+            } else {
+              // 변환 실패 시 effectiveDateForNotification은 원본 날짜를 유지합니다.
+              // 이 경우, 알림은 원본 날짜 기준으로 "오늘"/"내일"이 결정될 수 있습니다.
+              this.logger.warn(
+                `알림 메시지용 날짜 결정 시 음력 변환 실패: '${anniversary.title}'은 원본 날짜(${anniversary.start_date}) 기준으로 처리될 수 있습니다.`
+              );
+            }
+          }
+
+          const anniversaryMMDDForNotification =
+            effectiveDateForNotification.format("MM-DD");
+          const isToday = anniversaryMMDDForNotification === todayMMDD;
 
           // 알림 메시지 생성
           const titlePrefix = isToday ? "오늘" : "내일";

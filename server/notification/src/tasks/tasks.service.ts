@@ -8,6 +8,7 @@ import { User } from "../schemas/user.schema";
 import { Schedule } from "../schemas/schedule.schema";
 import { Workspace } from "../schemas/workspace.schema";
 import dayjs from "dayjs";
+const KoreanLunarCalendar = require("korean-lunar-calendar");
 
 @Injectable()
 export class TasksService {
@@ -168,23 +169,45 @@ export class TasksService {
         );
 
         // 앱 메모리에서 필터링 (MongoDB 쿼리가 아닌 JavaScript로 필터링)
-        const filteredAnniversaries = anniversaries.filter((anniversary) => {
-          const anniversaryMMDD = dayjs(anniversary.start_date).format("MM-DD");
-          const isMatch =
-            anniversaryMMDD === todayMMDD || anniversaryMMDD === tomorrowMMDD;
+        const filteredAnniversaries = anniversaries.filter(
+          (anniversary: any) => {
+            let effectiveDate = dayjs(anniversary.start_date); // 기본적으로 양력으로 간주
+            // anniversary.calendar_type이 있고, anniversary.start_date가 유효한 경우에만 변환 시도
+            if (
+              anniversary.calendar_type === "lunar" &&
+              anniversary.start_date
+            ) {
+              const solarDate = this.convertLunarToSolar(
+                anniversary.start_date,
+                anniversary.title,
+                "시작일"
+              );
+              if (solarDate) {
+                effectiveDate = solarDate;
+              } else {
+                this.logger.warn(
+                  `음력 변환 실패로 기념일 '${anniversary.title}'은 원래 날짜(${anniversary.start_date}) 기준으로 처리될 수 있습니다.`
+                );
+              }
+            }
 
-          if (isMatch) {
-            this.logger.debug(
-              `일치하는 기념일: ${anniversary.title}, 날짜: ${anniversary.start_date}, MM-DD 변환: ${anniversaryMMDD}`
-            );
-          } else {
-            this.logger.debug(
-              `제외된 기념일: ${anniversary.title}, 날짜: ${anniversary.start_date}, MM-DD 변환: ${anniversaryMMDD}`
-            );
+            const anniversaryMMDD = effectiveDate.format("MM-DD");
+            const isMatch =
+              anniversaryMMDD === todayMMDD || anniversaryMMDD === tomorrowMMDD;
+
+            if (isMatch) {
+              this.logger.debug(
+                `일치하는 기념일: ${anniversary.title}, 날짜: ${anniversary.start_date}, MM-DD 변환: ${anniversaryMMDD}`
+              );
+            } else {
+              this.logger.debug(
+                `제외된 기념일: ${anniversary.title}, 날짜: ${anniversary.start_date}, MM-DD 변환: ${anniversaryMMDD}`
+              );
+            }
+
+            return isMatch;
           }
-
-          return isMatch;
-        });
+        );
 
         this.logger.log(
           `워크스페이스 ${workspace._id}의 오늘/내일 기념일: ${filteredAnniversaries.length}개`
@@ -296,10 +319,43 @@ export class TasksService {
           `오늘 날짜: ${todayDateString}, 내일 날짜: ${tomorrowDateString}`
         );
 
-        const schedules = allSchedules.filter((schedule) => {
+        const schedules = allSchedules.filter((schedule: any) => {
           // ISO 형식의 날짜 문자열을 dayjs로 변환하여 YYYY-MM-DD 형식으로 비교
-          const startDate = dayjs(schedule.start_date).format("YYYY-MM-DD");
-          const endDate = dayjs(schedule.end_date).format("YYYY-MM-DD");
+          let effectiveStartDate = dayjs(schedule.start_date);
+          if (schedule.calendar_type === "lunar" && schedule.start_date) {
+            const solarStartDate = this.convertLunarToSolar(
+              schedule.start_date,
+              schedule.title,
+              "시작일"
+            );
+            if (solarStartDate) {
+              effectiveStartDate = solarStartDate;
+            } else {
+              this.logger.warn(
+                `음력 시작일 변환 실패로 일정 '${schedule.title}'은 원래 시작일(${schedule.start_date}) 기준으로 처리될 수 있습니다.`
+              );
+            }
+          }
+
+          let effectiveEndDate = dayjs(schedule.end_date);
+          // 종료일도 음력일 경우 변환 (일반적으로 calendar_type은 일정 전체에 적용됨)
+          if (schedule.calendar_type === "lunar" && schedule.end_date) {
+            const solarEndDate = this.convertLunarToSolar(
+              schedule.end_date,
+              schedule.title,
+              "종료일"
+            );
+            if (solarEndDate) {
+              effectiveEndDate = solarEndDate;
+            } else {
+              this.logger.warn(
+                `음력 종료일 변환 실패로 일정 '${schedule.title}'은 원래 종료일(${schedule.end_date}) 기준으로 처리될 수 있습니다.`
+              );
+            }
+          }
+
+          const startDate = effectiveStartDate.format("YYYY-MM-DD");
+          const endDate = effectiveEndDate.format("YYYY-MM-DD");
 
           this.logger.debug(
             `일정 ${schedule.title}: start_date=${schedule.start_date}(${startDate}), end_date=${schedule.end_date}(${endDate})`
@@ -405,14 +461,6 @@ export class TasksService {
   }
 
   /**
-   * 매시간 테스트용 로그 출력 크론 작업
-   */
-  @Cron(CronExpression.EVERY_HOUR)
-  handleHourlyCheck() {
-    this.logger.log("매 시간 상태 확인 실행");
-  }
-
-  /**
    * 현재 날짜를 YYYY-MM-DD 형식으로 반환
    */
   private getTodayDate(): string {
@@ -493,7 +541,7 @@ export class TasksService {
           `워크스페이스 ${workspace._id}의 전체 일정 수: ${allSchedules.length}개`
         );
 
-        const todaySchedules = allSchedules.filter((schedule) => {
+        const todaySchedules = allSchedules.filter((schedule: any) => {
           if (schedule.is_anniversary) {
             // 기념일은 월-일 형식으로 비교
             const scheduleMMDD = dayjs(schedule.start_date).format("MM-DD");
@@ -583,6 +631,52 @@ export class TasksService {
         `오늘의 테스트 알림 전송 중 오류 발생: ${error.message || error}`
       );
       throw error;
+    }
+  }
+
+  private convertLunarToSolar(
+    lunarDateString: string,
+    itemTitle: string,
+    dateType: string
+  ): dayjs.Dayjs | null {
+    if (!lunarDateString) {
+      this.logger.warn(
+        `일정/기념일 ${itemTitle} (${dateType})에 유효한 날짜 문자열이 없습니다.`
+      );
+      return null;
+    }
+    try {
+      const calendar = new KoreanLunarCalendar();
+      const lunarDate = dayjs(lunarDateString);
+      // KoreanLunarCalendar expects year, month (1-12), day
+      if (
+        calendar.setLunarDate(
+          lunarDate.year(),
+          lunarDate.month() + 1,
+          lunarDate.date(),
+          false
+        )
+      ) {
+        // false for not leap month by default
+        const solar = calendar.getSolarCalendar();
+        const solarDayjs = dayjs(
+          `${solar.year}-${String(solar.month).padStart(2, "0")}-${String(solar.day).padStart(2, "0")}`
+        );
+        this.logger.debug(
+          `일정/기념일 '${itemTitle}' (${dateType} 음력: ${lunarDate.format("YYYY-MM-DD")}) -> 양력 변환: ${solarDayjs.format("YYYY-MM-DD")}`
+        );
+        return solarDayjs;
+      } else {
+        this.logger.warn(
+          `일정/기념일 '${itemTitle}' (${dateType}) 음력->양력 변환 실패: ${lunarDateString}`
+        );
+        return null;
+      }
+    } catch (error) {
+      this.logger.error(
+        `일정/기념일 '${itemTitle}' (${dateType}) 음력->양력 변환 중 오류 (${lunarDateString}): ${error.message}`
+      );
+      return null;
     }
   }
 }

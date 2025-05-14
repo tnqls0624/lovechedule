@@ -170,7 +170,8 @@ export class TasksService {
 
         // 앱 메모리에서 필터링 (MongoDB 쿼리가 아닌 JavaScript로 필터링)
         const filteredAnniversaries = anniversaries.filter(
-          (anniversary: any) => {
+          (anniversaryDoc: any) => {
+            const anniversary = anniversaryDoc.toObject();
             let effectiveDate = dayjs(anniversary.start_date); // 기본적으로 양력으로 간주
             // anniversary.calendar_type이 있고, anniversary.start_date가 유효한 경우에만 변환 시도
             if (
@@ -189,6 +190,7 @@ export class TasksService {
                   `음력 변환 실패로 기념일 '${anniversary.title}'은 원래 날짜(${anniversary.start_date}) 기준으로 처리될 수 있습니다.`
                 );
               }
+              console.log(solarDate);
             }
 
             const anniversaryMMDD = effectiveDate.format("MM-DD");

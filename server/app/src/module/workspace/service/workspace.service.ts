@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   Inject,
   Injectable,
@@ -13,6 +14,13 @@ import { UserRepository } from '../../user/interface/user.repository';
 import { Types } from 'mongoose';
 import { UpdateWorkspaceRequestDto } from '../dto/request/update-workspace.request.dto';
 import { UpdateUserNameRequestDto } from 'src/module/user/dto/request/update-user-name.request.dto';
+import { ScheduleService } from '../../schedule/service/schedule.service';
+import { CreateScheduleRequestDto } from '../../schedule/dto/request/create-schedule.request.dto';
+import {
+  CalendarType,
+  RepeatType
+} from '../../schedule/dto/request/create-schedule.request.dto';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class WorkspaceService {
@@ -21,8 +29,40 @@ export class WorkspaceService {
     @Inject('WORKSPACE_REPOSITORY')
     private readonly workspaceRepository: WorkspaceRepository,
     @Inject('USER_REPOSITORY')
-    private readonly userRepository: UserRepository
+    private readonly userRepository: UserRepository,
+    private readonly scheduleService: ScheduleService
   ) {}
+
+  private async createAnniversarySchedules(workspace: Workspace) {
+    try {
+      const startDate = dayjs(workspace.love_day);
+
+      // 매년 기념일 생성
+      for (let year = 0; year <= 50; year++) {
+        const anniversaryDate = startDate.add(year, 'year');
+
+        const scheduleDto: CreateScheduleRequestDto = {
+          title: `${year}주년`,
+          memo: `우리의 ${year}주년을 축하합니다!`,
+          start_date: anniversaryDate.format('YYYY-MM-DD'),
+          end_date: anniversaryDate.format('YYYY-MM-DD'),
+          calendar_type: CalendarType.SOLAR,
+          repeat_type: RepeatType.NONE,
+          participants: [workspace.master.toString(), workspace.users[0]],
+          is_anniversary: true
+        };
+
+        await this.scheduleService.insert(
+          workspace.master as unknown as UserDto,
+          workspace._id.toString(),
+          scheduleDto
+        );
+      }
+    } catch (error) {
+      this.logger.error(`기념일 스케줄 생성 중 오류 발생: ${error.message}`);
+      throw error;
+    }
+  }
 
   async create(user_dto: UserDto, body: CreateWorkspaceRequestDto) {
     try {
@@ -33,11 +73,18 @@ export class WorkspaceService {
         throw new NotFoundException('초대코드를 찾을 수 없습니다');
       }
 
+      if (master_user._id.equals(user_dto._id)) {
+        throw new BadRequestException('자기 자신을 초대할 수 없습니다');
+      }
+
       const workspace = await this.workspaceRepository.create(
         new Types.ObjectId(String(user_dto._id)),
         master_user._id,
         body
       );
+
+      // 50년치 기념일 스케줄 생성
+      await this.createAnniversarySchedules(workspace);
 
       return workspace;
     } catch (e) {

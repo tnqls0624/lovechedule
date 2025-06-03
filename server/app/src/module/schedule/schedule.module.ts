@@ -1,4 +1,4 @@
-import { Module, Provider } from '@nestjs/common';
+import { forwardRef, Module, Provider } from '@nestjs/common';
 import { ScheduleController } from './controller/schedule.controller';
 import { ScheduleService } from './service/schedule.service';
 import { ScheduleRepositoryImplement } from './repository/schedule.repository.implement';
@@ -39,11 +39,12 @@ const controller = [ScheduleController];
       ],
       'lovechedule'
     ),
-    WorkspaceModule,
+    forwardRef(() => WorkspaceModule),
     CacheStoreModule,
     HttpModule
   ],
   controllers: [...controller],
-  providers: [...services, ...infrastructure]
+  providers: [...services, ...infrastructure],
+  exports: [...services, ...infrastructure]
 })
 export class ScheduleModule {}

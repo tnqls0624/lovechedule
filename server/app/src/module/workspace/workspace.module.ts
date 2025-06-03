@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Workspace, WorkspaceSchema } from './schema/workspace.schema';
 import { UserModule } from '../user/user.module';
 import { User, UserSchema } from '../user/schema/user.schema';
+import { ScheduleModule } from '../schedule/schedule.module';
 
 const infrastructure: Provider[] = [
   {
@@ -27,7 +28,8 @@ const controller = [WorkspaceController];
       ],
       'lovechedule'
     ),
-    forwardRef(() => UserModule)
+    forwardRef(() => UserModule),
+    forwardRef(() => ScheduleModule)
   ],
   controllers: [...controller],
   providers: [...services, ...infrastructure],

@@ -34,7 +34,6 @@ services:
       MONGO_INITDB_DATABASE: lovechedule
     volumes:
       - mongodb_data:/data/db
-      - ./docker-compose/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     deploy:
       replicas: 1
       restart_policy:

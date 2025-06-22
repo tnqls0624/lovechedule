@@ -25,19 +25,25 @@ services:
     networks:
       - lovechedule-network
 
-  # # MongoDB 서비스
-  # mongodb:
-  #   image: mongo:latest
-  #   container_name: mongodb
-  #   environment:
-  #     MONGO_INITDB_ROOT_USERNAME: root
-  #     MONGO_INITDB_ROOT_PASSWORD: 1234
-  #   deploy:
-  #     replicas: 1
-  #     restart_policy:
-  #       condition: on-failure
-  #   networks:
-  #     - lovechedule-network
+  # MongoDB 서비스
+  mongodb:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 1234
+      MONGO_INITDB_DATABASE: lovechedule
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker-compose/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager # 데이터 일관성을 위해 매니저 노드에서 실행
+    networks:
+      - lovechedule-network
 
   # Redis 서비스
   redis:
@@ -111,3 +117,7 @@ services:
 networks:
   lovechedule-network:
     driver: overlay
+
+volumes:
+  mongodb_data:
+    driver: local

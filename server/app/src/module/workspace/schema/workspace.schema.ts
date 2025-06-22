@@ -59,7 +59,7 @@ export class Workspace {
     type: [{ type: Types.ObjectId, ref: 'User', required: true }],
     default: []
   })
-  users: string[];
+  users: Types.ObjectId[];
 
   @Expose()
   @Type(() => Tag)

@@ -22,6 +22,10 @@ export class User {
   @Prop({ required: true, type: String })
   name: string;
 
+  // 비밀번호 - EMAIL 로그인 타입에서만 사용
+  @Prop({ type: String, required: false })
+  password: string;
+
   @Expose()
   @Prop({
     type: String,

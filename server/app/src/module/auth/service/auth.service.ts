@@ -8,6 +8,10 @@ import { UpdateInfoRequestDto } from '../dto/request/update-Info.request.dto';
 import { UserDto } from '../dto/user.dto';
 import axios from 'axios';
 import { customAlphabet } from 'nanoid';
+import {
+  PasswordGenerator,
+  PASSWORD_GENERATOR
+} from '../../../lib/password.module';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +22,9 @@ export class AuthService {
   constructor(
     @Inject('AUTH_REPOSITORY') private readonly authRepository: AuthRepository,
     @Inject('USER_REPOSITORY') private readonly userRepository: UserRepository,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    @Inject(PASSWORD_GENERATOR)
+    private readonly passwordGenerator: PasswordGenerator
   ) {}
 
   async login(body: LoginRequestDto): Promise<any> {
@@ -58,20 +64,44 @@ export class AuthService {
           break;
         }
         case LoginType.EMAIL: {
-          social_data = {
-            login_type: LoginType.EMAIL,
-            email: body.email,
-            name: body.name,
-            birthday: body.birthday,
-            invite_code
-          };
+          // EMAIL 로그인의 경우 기존 사용자 확인 및 비밀번호 검증
+          const existingUser = await this.userRepository.findByEmail(
+            body.email
+          );
+
+          if (!existingUser) {
+            throw new HttpException(
+              '사용자를 찾을 수 없습니다. 회원가입이 필요합니다.',
+              404
+            );
+          }
+
+          // 비밀번호 검증
+          const isPasswordValid = await this.passwordGenerator.confirmHash(
+            body.password,
+            existingUser.password
+          );
+
+          if (!isPasswordValid) {
+            throw new HttpException('비밀번호가 일치하지 않습니다.', 401);
+          }
+
+          // EMAIL 로그인은 기존 사용자 정보 사용
+          social_data = existingUser;
           break;
         }
       }
-      let user = await this.userRepository.findByEmail(social_data.email);
 
-      if (!user) {
-        user = await this.authRepository.insert(social_data);
+      let user;
+      if (body.login_type === LoginType.EMAIL) {
+        // EMAIL 로그인의 경우 이미 검증된 사용자 사용
+        user = social_data;
+      } else {
+        // 소셜 로그인의 경우 기존 로직 유지
+        user = await this.userRepository.findByEmail(social_data.email);
+        if (!user) {
+          user = await this.authRepository.insert(social_data);
+        }
       }
 
       const access_token = await this.jwtService.signAsync(

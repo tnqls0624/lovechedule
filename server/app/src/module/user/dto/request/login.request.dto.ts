@@ -27,6 +27,15 @@ export class LoginRequestDto {
   @IsOptional()
   readonly email: string;
 
+  // password
+  @ApiProperty({
+    example: 'test123',
+    description: '비밀번호'
+  })
+  @IsString()
+  @IsOptional()
+  readonly password: string;
+
   // name
   @ApiProperty({
     example: '홍길동',

@@ -10,6 +10,8 @@ import { WorkspaceModule } from './module/workspace/workspace.module';
 import { ScheduleModule } from './module/schedule/schedule.module';
 import { AlbumModule } from './module/album/album.module';
 import { PhotoModule } from './module/photo/photo.module';
+import { TransactionModule } from './module/transaction/transaction.module';
+import { BudgetModule } from './module/budget/budget.module';
 import {
   CACHE_GENERATOR,
   CacheModule as CacheStoreModule
@@ -43,6 +45,8 @@ import { ScheduleModule as TaskScheduleModule } from '@nestjs/schedule';
     ScheduleModule,
     AlbumModule,
     PhotoModule,
+    TransactionModule,
+    BudgetModule,
     CacheStoreModule,
     WeatherModule
   ],

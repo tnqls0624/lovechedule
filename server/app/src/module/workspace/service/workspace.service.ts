@@ -38,7 +38,7 @@ export class WorkspaceService {
       const startDate = dayjs(workspace.love_day);
 
       // 매년 기념일 생성
-      for (let year = 0; year <= 50; year++) {
+      for (let year = 1; year <= 50; year++) {
         const anniversaryDate = startDate.add(year, 'year');
 
         const scheduleDto: CreateScheduleRequestDto = {
@@ -48,7 +48,10 @@ export class WorkspaceService {
           end_date: anniversaryDate.format('YYYY-MM-DD'),
           calendar_type: CalendarType.SOLAR,
           repeat_type: RepeatType.NONE,
-          participants: [workspace.master.toString(), workspace.users[0]],
+          participants: [
+            workspace.master.toString(),
+            workspace.users[0].toString()
+          ],
           is_anniversary: true
         };
 

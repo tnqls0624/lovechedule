@@ -43,4 +43,7 @@ export class TransactionDto {
 
   @Expose()
   recurring_period: string;
+
+  @Expose()
+  participants: string[];
 }

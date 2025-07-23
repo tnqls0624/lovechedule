@@ -61,6 +61,14 @@ export class Transaction {
   user: Types.ObjectId;
 
   @Expose()
+  @Type(() => User)
+  @Prop({
+    type: [{ type: Types.ObjectId, ref: 'User' }],
+    default: []
+  })
+  participants: string[];
+
+  @Expose()
   @Type(() => Workspace)
   @Prop({ type: Types.ObjectId, ref: 'Workspace', required: true })
   workspace: Types.ObjectId;

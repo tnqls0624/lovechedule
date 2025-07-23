@@ -8,11 +8,9 @@ import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 
-// dayjs 플러그인 활성화
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-// 한국 시간대 설정
 const KST_TIMEZONE = 'Asia/Seoul';
 
 @Injectable()
@@ -92,8 +90,12 @@ export class TransactionRepositoryImplement implements TransactionRepository {
     _id: Types.ObjectId,
     body: Partial<CreateTransactionRequestDto>
   ): Promise<Transaction> {
+    const updateData = {
+      ...body
+    };
+
     return this.transactionModel
-      .findByIdAndUpdate(_id, body, { new: true })
+      .findByIdAndUpdate(_id, updateData, { new: true })
       .exec();
   }
 
@@ -154,41 +156,14 @@ export class TransactionRepositoryImplement implements TransactionRepository {
       count: number;
     }>;
   }> {
-    // 한국 시간대를 사용한 정확한 날짜 계산
     const startDate = dayjs
       .tz(`${year}-${String(month).padStart(2, '0')}-01 00:00:00`, KST_TIMEZONE)
       .toDate();
-    console.log('startDate (KST):', dayjs(startDate).tz(KST_TIMEZONE).format());
-
-    const lastDay = dayjs
-      .tz(`${year}-${String(month).padStart(2, '0')}-01`, KST_TIMEZONE)
-      .daysInMonth();
-    console.log('lastDay', lastDay);
 
     const endDate = dayjs
       .tz(`${year}-${String(month).padStart(2, '0')}-01`, KST_TIMEZONE)
       .endOf('month')
       .toDate();
-    console.log('endDate (KST):', dayjs(endDate).tz(KST_TIMEZONE).format());
-
-    console.log('🔍 MongoDB 집계 쿼리 시작 (한국 시간대):');
-    console.log('- 워크스페이스:', workspace_id);
-    console.log('- 요청 년/월:', year, '/', month);
-    console.log('- 시간대:', KST_TIMEZONE, '(UTC+9)');
-    console.log('- 해당 월 마지막 날:', lastDay);
-    console.log(
-      '- 시작 날짜 (KST):',
-      dayjs(startDate).tz(KST_TIMEZONE).format()
-    );
-    console.log('- 종료 날짜 (KST):', dayjs(endDate).tz(KST_TIMEZONE).format());
-
-    // 먼저 해당 조건의 기본 거래 수를 확인
-    const totalCount = await this.transactionModel.countDocuments({
-      workspace: workspace_id,
-      date: { $gte: startDate, $lte: endDate }
-    });
-
-    console.log('📊 해당 기간 총 거래 수:', totalCount);
 
     const aggregationPipeline = [
       {
@@ -234,17 +209,9 @@ export class TransactionRepositoryImplement implements TransactionRepository {
       }
     ];
 
-    console.log(
-      '🔍 집계 파이프라인:',
-      JSON.stringify(aggregationPipeline, null, 2)
-    );
-
     const result = await this.transactionModel.aggregate(aggregationPipeline);
 
-    console.log('📊 MongoDB 집계 결과:', JSON.stringify(result, null, 2));
-
     if (result.length === 0) {
-      console.log('⚠️ 집계 결과 없음 - 빈 통계 반환');
       return {
         total_income: 0,
         total_expense: 0,
@@ -300,13 +267,6 @@ export class TransactionRepositoryImplement implements TransactionRepository {
       total_expense,
       category_stats
     };
-
-    console.log('✅ 최종 통계 결과:', {
-      total_income,
-      total_expense,
-      category_count: category_stats.length,
-      categories: category_stats.map((c) => `${c.category}: ${c.amount}`)
-    });
 
     return finalResult;
   }

@@ -147,6 +147,7 @@ export class TransactionController {
     @Param('id') id: string,
     @Body() body: Partial<CreateTransactionRequestDto>
   ) {
+    console.log('update', id, body);
     return this.transactionService.update(id, body);
   }
 
@@ -262,7 +263,6 @@ export class TransactionController {
     @Query('start_date') start_date: string,
     @Query('end_date') end_date: string
   ) {
-    console.log('getDateRangeTransactions', workspace_id, start_date, end_date);
     return this.transactionService.getDateRangeTransactions(
       workspace_id,
       start_date,

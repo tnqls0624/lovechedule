@@ -117,11 +117,6 @@ export class BudgetController {
       end_date: endDate
     });
 
-    // 월별 통계 데이터 조회 (디버깅 정보 추가)
-    console.log(
-      `📊 통계 조회 중 - 워크스페이스: ${workspace_id}, 년: ${yearNum}, 월: ${monthNum}`
-    );
-
     const stats = await this.transactionService.getMonthlyStats(
       workspace_id,
       yearNum,
@@ -440,13 +435,6 @@ export class BudgetController {
     const currentYear = dayjs().tz(KST_TIMEZONE).year().toString();
     const yearToUse = year || currentYear;
 
-    console.log(
-      'Year 파라미터 처리 (Yearly) - 원본:',
-      year,
-      '사용할 값:',
-      yearToUse
-    );
-
     // 쿼리 파라미터를 숫자로 변환 및 유효성 검증
     const yearNum = parseInt(yearToUse, 10);
 
@@ -669,8 +657,6 @@ export class BudgetController {
   @UseGuards(JwtAuthGuard)
   @Get('categories/defaults')
   async getDefaultCategories() {
-    console.log('=== 기본 카테고리 목록 조회 ===');
-
     const defaultCategories = {
       income: [
         { id: 'salary', name: '급여', icon: '💰', color: '#4CAF50' },
@@ -715,9 +701,6 @@ export class BudgetController {
       ]
     };
 
-    console.log('📋 수입 카테고리:', defaultCategories.income.length, '개');
-    console.log('📋 지출 카테고리:', defaultCategories.expense.length, '개');
-
     return {
       categories: defaultCategories,
       summary: {
@@ -752,14 +735,7 @@ export class BudgetController {
     @Query('workspace_id') workspace_id: string,
     @Query('type') type?: string
   ) {
-    const timestamp = dayjs().tz(KST_TIMEZONE).format();
     const requestId = Math.random().toString(36).substring(7);
-
-    console.log(
-      `\n📂 [${timestamp}] [ID:${requestId}] === 사용된 카테고리 조회 ===`
-    );
-    console.log(`[${requestId}] Workspace ID:`, workspace_id);
-    console.log(`[${requestId}] Type filter:`, type || 'all');
 
     if (!workspace_id) {
       throw new BadRequestException('workspace_id parameter is required');
@@ -767,7 +743,6 @@ export class BudgetController {
 
     // 해당 워크스페이스의 모든 거래 조회
     const transactions = await this.transactionService.findAll(workspace_id);
-    console.log(`[${requestId}] 📊 총 거래 수:`, transactions.length);
 
     // 카테고리별 통계 생성
     const categoryStats = new Map<
@@ -833,17 +808,6 @@ export class BudgetController {
         last_used_kst: dayjs(cat.last_used).tz(KST_TIMEZONE).format()
       }));
 
-    console.log(
-      `[${requestId}] 📊 사용된 수입 카테고리:`,
-      incomeCategories.length,
-      '개'
-    );
-    console.log(
-      `[${requestId}] 📊 사용된 지출 카테고리:`,
-      expenseCategories.length,
-      '개'
-    );
-
     return {
       workspace_id,
       filter_type: type || 'all',
@@ -882,15 +846,6 @@ export class BudgetController {
     @Query('workspace_id') workspace_id: string,
     @Query('type') type: 'income' | 'expense'
   ) {
-    const timestamp = dayjs().tz(KST_TIMEZONE).format();
-    const requestId = Math.random().toString(36).substring(7);
-
-    console.log(
-      `\n💡 [${timestamp}] [ID:${requestId}] === 추천 카테고리 조회 ===`
-    );
-    console.log(`[${requestId}] Workspace ID:`, workspace_id);
-    console.log(`[${requestId}] Type:`, type);
-
     if (!workspace_id || !type) {
       throw new BadRequestException(
         'workspace_id and type parameters are required'
@@ -943,22 +898,6 @@ export class BudgetController {
         }))
     ];
 
-    console.log(
-      `[${requestId}] 💡 ${type} 추천 카테고리:`,
-      suggestions.length,
-      '개'
-    );
-    console.log(
-      `[${requestId}] - 사용된 카테고리:`,
-      usedCategories.length,
-      '개'
-    );
-    console.log(
-      `[${requestId}] - 기본 카테고리:`,
-      defaultCategories.length - usedCategories.length,
-      '개'
-    );
-
     return {
       workspace_id,
       type,
@@ -968,99 +907,6 @@ export class BudgetController {
         used_categories: usedCategories.length,
         default_categories: defaultCategories.length - usedCategories.length
       }
-    };
-  }
-
-  // ==================== 디버깅용 엔드포인트 ====================
-
-  @ApiOperation({ summary: '디버깅: 워크스페이스 모든 거래 조회' })
-  @ApiOkResponse({
-    type: ResponseDto,
-    description: '모든 거래 조회 성공'
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Get('debug/all/:workspace_id')
-  async getAllTransactionsDebug(@Param('workspace_id') workspace_id: string) {
-    console.log('=== 디버깅: 모든 거래 조회 ===');
-    console.log('Workspace:', workspace_id);
-
-    const allTransactions = await this.transactionService.findAll(workspace_id);
-
-    console.log(`📋 총 거래 수: ${allTransactions.length}`);
-    allTransactions.forEach((t, index) => {
-      console.log(
-        `${index + 1}. ${t.title} - ${t.amount}원 (${t.type}) - ${t.date}`
-      );
-    });
-
-    return {
-      total_count: allTransactions.length,
-      transactions: allTransactions
-    };
-  }
-
-  @ApiOperation({ summary: '디버깅: 즉시 통계 재계산' })
-  @ApiOkResponse({
-    type: ResponseDto,
-    description: '통계 재계산 성공'
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Get('debug/recalc/:workspace_id/:year/:month')
-  async recalculateStatsDebug(
-    @Param('workspace_id') workspace_id: string,
-    @Param('year') year: string,
-    @Param('month') month: string
-  ) {
-    console.log('=== 디버깅: 통계 재계산 ===');
-    const yearNum = parseInt(year);
-    const monthNum = parseInt(month);
-
-    const stats = await this.transactionService.getMonthlyStats(
-      workspace_id,
-      yearNum,
-      monthNum
-    );
-
-    return {
-      workspace_id,
-      year: yearNum,
-      month: monthNum,
-      stats
-    };
-  }
-
-  @ApiOperation({ summary: '디버깅: 요청 파라미터 상세 분석' })
-  @ApiOkResponse({
-    type: ResponseDto,
-    description: '파라미터 분석 결과'
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Get('debug/params')
-  async debugRequestParams(@Req() req: any) {
-    console.log('=== 파라미터 디버깅 ===');
-    console.log('Full URL:', req.url);
-    console.log('Raw Query String:', req.url.split('?')[1]);
-    console.log('Parsed Query Params:', req.query);
-
-    Object.keys(req.query).forEach((key) => {
-      const value = req.query[key];
-      console.log(`- ${key}: "${value}" (타입: ${typeof value})`);
-    });
-
-    return {
-      full_url: req.url,
-      raw_query_string: req.url.split('?')[1],
-      parsed_params: req.query,
-      param_details: Object.keys(req.query).map((key) => ({
-        key,
-        value: req.query[key],
-        type: typeof req.query[key],
-        parsed_number: parseInt(req.query[key], 10),
-        is_valid_number: !isNaN(parseInt(req.query[key], 10))
-      }))
     };
   }
 
@@ -1080,11 +926,6 @@ export class BudgetController {
     @Query('workspace_id') workspace_id: string,
     @Body() body: CreateTransactionRequestDto
   ) {
-    console.log('=== 거래 생성 ===');
-    console.log('User:', user._id);
-    console.log('Workspace:', workspace_id);
-    console.log('Transaction data:', body);
-
     if (!workspace_id) {
       throw new BadRequestException('workspace_id parameter is required');
     }
@@ -1095,41 +936,6 @@ export class BudgetController {
       workspace_id,
       body
     );
-
-    // 생성 결과 로깅
-    console.log('✅ 거래 생성 완료:', {
-      id: result._id,
-      title: result.title,
-      amount: result.amount,
-      type: result.type,
-      date: result.date,
-      workspace: result.workspace
-    });
-
-    // 생성 직후 통계 확인을 위한 로깅 (한국 시간 기준)
-    const transactionDate = dayjs(result.date).tz(KST_TIMEZONE);
-    const year = transactionDate.year();
-    const month = transactionDate.month() + 1;
-
-    console.log(
-      `📊 통계 영향 예상 - 년: ${year}, 월: ${month}, 워크스페이스: ${workspace_id}`
-    );
-
-    // 즉시 해당 월의 통계를 다시 계산해서 로깅
-    try {
-      const updatedStats = await this.transactionService.getMonthlyStats(
-        workspace_id,
-        year,
-        month
-      );
-      console.log('📈 업데이트된 월별 통계:', {
-        total_income: updatedStats.total_income,
-        total_expense: updatedStats.total_expense,
-        category_stats_count: updatedStats.category_stats.length
-      });
-    } catch (error) {
-      console.error('❌ 통계 재계산 중 오류:', error);
-    }
 
     return result;
   }
@@ -1147,10 +953,6 @@ export class BudgetController {
     @Param('id') id: string,
     @Body() body: Partial<CreateTransactionRequestDto>
   ) {
-    console.log('=== 거래 수정 ===');
-    console.log('Transaction ID:', id);
-    console.log('Update data:', body);
-
     return this.transactionService.update(id, body);
   }
 
@@ -1163,9 +965,6 @@ export class BudgetController {
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteTransaction(@Param('id') id: string) {
-    console.log('=== 거래 삭제 ===');
-    console.log('Transaction ID:', id);
-
     return this.transactionService.delete(id);
   }
 
@@ -1179,9 +978,7 @@ export class BudgetController {
   @Serialize(TransactionDto)
   @Get(':id')
   async getTransactionDetail(@Param('id') id: string) {
-    console.log('=== 거래 상세 조회 ===');
-    console.log('Transaction ID:', id);
-
+    console.log('id', id);
     return this.transactionService.findById(id);
   }
 
@@ -1209,16 +1006,6 @@ export class BudgetController {
     @Query('start_date') start_date: string,
     @Query('end_date') end_date: string
   ) {
-    const timestamp = dayjs().tz(KST_TIMEZONE).format();
-    const requestId = Math.random().toString(36).substring(7);
-
-    console.log(
-      `\n📅 [${timestamp}] [ID:${requestId}] === BUDGET RANGE 엔드포인트 ===`
-    );
-    console.log(`[${requestId}] Full URL:`, req.url);
-    console.log(`[${requestId}] Workspace ID:`, workspace_id);
-    console.log(`[${requestId}] 날짜 범위:`, start_date, '~', end_date);
-
     // 필수 파라미터 검증
     if (!workspace_id) {
       throw new BadRequestException('workspace_id parameter is required');
@@ -1237,15 +1024,6 @@ export class BudgetController {
     try {
       startDate = dayjs.tz(`${start_date} 00:00:00`, KST_TIMEZONE).toDate();
       endDate = dayjs.tz(`${end_date} 23:59:59`, KST_TIMEZONE).toDate();
-
-      console.log(
-        `[${requestId}] 변환된 시작 날짜 (KST):`,
-        dayjs(startDate).tz(KST_TIMEZONE).format()
-      );
-      console.log(
-        `[${requestId}] 변환된 종료 날짜 (KST):`,
-        dayjs(endDate).tz(KST_TIMEZONE).format()
-      );
     } catch (error) {
       throw new BadRequestException(
         'Invalid date format. Use YYYY-MM-DD format.'
@@ -1258,13 +1036,10 @@ export class BudgetController {
     }
 
     // 거래 데이터 조회
-    console.log(`[${requestId}] 🔍 범위별 거래 조회 시작`);
     const transactions = await this.transactionService.findAll(workspace_id, {
       start_date: startDate.toISOString(),
       end_date: endDate.toISOString()
     });
-
-    console.log(`[${requestId}] 📋 조회된 거래 수:`, transactions.length);
 
     // 통계 계산
     const totalIncome = transactions
@@ -1299,10 +1074,6 @@ export class BudgetController {
         percentage: totalExpense > 0 ? (stats.amount / totalExpense) * 100 : 0
       }))
       .sort((a, b) => b.amount - a.amount);
-
-    console.log(`[${requestId}] 💰 총 수입:`, totalIncome);
-    console.log(`[${requestId}] 💸 총 지출:`, totalExpense);
-    console.log(`[${requestId}] 💵 잔액:`, balance);
 
     return {
       workspace_id,

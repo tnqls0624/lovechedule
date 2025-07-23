@@ -7,7 +7,8 @@ import {
   IsDateString,
   IsBoolean,
   IsNotEmpty,
-  Min
+  Min,
+  IsArray
 } from 'class-validator';
 import {
   TransactionType,
@@ -90,4 +91,13 @@ export class CreateTransactionRequestDto {
   @IsString()
   @IsOptional()
   readonly recurring_period?: string;
+
+  @ApiProperty({
+    example: ['1234567890', '1234567891'],
+    description: '참여자 ID 목록',
+    required: false
+  })
+  @IsArray()
+  @IsOptional()
+  readonly participants?: string[];
 }

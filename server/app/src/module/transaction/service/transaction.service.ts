@@ -111,10 +111,12 @@ export class TransactionService {
         throw new BadRequestException('금액은 0보다 커야 합니다');
       }
 
-      return await this.transactionRepository.update(
+      const result = await this.transactionRepository.update(
         new Types.ObjectId(_id),
         body
       );
+
+      return result;
     } catch (e) {
       this.logger.error(e);
       throw new HttpException(e.message || e, e.status || 500);

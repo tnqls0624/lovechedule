@@ -26,6 +26,12 @@ export class TransactionService {
     workspace_id: string,
     body: CreateTransactionRequestDto
   ): Promise<Transaction> {
+    if (
+      !Types.ObjectId.isValid(workspace_id) ||
+      !Types.ObjectId.isValid(user._id)
+    ) {
+      throw new BadRequestException('Invalid workspace or user ID');
+    }
     try {
       // 금액 검증
       if (body.amount < 0) {
@@ -54,6 +60,9 @@ export class TransactionService {
       skip?: number;
     }
   ): Promise<Transaction[]> {
+    if (!Types.ObjectId.isValid(workspace_id)) {
+      throw new BadRequestException('Invalid workspace ID');
+    }
     try {
       const queryOptions = options
         ? {
@@ -76,6 +85,10 @@ export class TransactionService {
   }
 
   async findById(_id: string): Promise<Transaction> {
+    console.log('findById11', _id);
+    if (!Types.ObjectId.isValid(_id)) {
+      throw new BadRequestException('Invalid transaction ID');
+    }
     try {
       const transaction = await this.transactionRepository.findById(
         new Types.ObjectId(_id)
@@ -96,6 +109,9 @@ export class TransactionService {
     _id: string,
     body: Partial<CreateTransactionRequestDto>
   ): Promise<Transaction> {
+    if (!Types.ObjectId.isValid(_id)) {
+      throw new BadRequestException('Invalid transaction ID');
+    }
     try {
       // 거래 존재 여부 확인
       const existingTransaction = await this.transactionRepository.findById(
@@ -124,6 +140,9 @@ export class TransactionService {
   }
 
   async delete(_id: string): Promise<Transaction> {
+    if (!Types.ObjectId.isValid(_id)) {
+      throw new BadRequestException('Invalid transaction ID');
+    }
     try {
       // 거래 존재 여부 확인
       const existingTransaction = await this.transactionRepository.findById(
@@ -154,6 +173,9 @@ export class TransactionService {
       count: number;
     }>;
   }> {
+    if (!Types.ObjectId.isValid(workspace_id)) {
+      throw new BadRequestException('Invalid workspace ID');
+    }
     try {
       return await this.transactionRepository.getMonthlyStats(
         new Types.ObjectId(workspace_id),
@@ -172,6 +194,9 @@ export class TransactionService {
     start_date?: string,
     end_date?: string
   ): Promise<number> {
+    if (!Types.ObjectId.isValid(workspace_id)) {
+      throw new BadRequestException('Invalid workspace ID');
+    }
     try {
       return await this.transactionRepository.getTotalAmountByType(
         new Types.ObjectId(workspace_id),
@@ -190,6 +215,9 @@ export class TransactionService {
     start_date: string,
     end_date: string
   ): Promise<Transaction[]> {
+    if (!Types.ObjectId.isValid(workspace_id)) {
+      throw new BadRequestException('Invalid workspace ID');
+    }
     try {
       return await this.transactionRepository.findByWorkspaceAndDateRange(
         new Types.ObjectId(workspace_id),

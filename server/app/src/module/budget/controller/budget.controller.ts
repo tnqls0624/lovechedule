@@ -29,6 +29,7 @@ import { UserDto } from '../../auth/dto/user.dto';
 import { User } from '../../../common/decorator/user.decorator';
 import { Serialize } from '../../../interceptor/serialize.interceptor';
 import { TransactionDto } from '../../transaction/dto/transaction.dto';
+import { CategoryService } from '../service/category.service';
 
 // dayjs 플러그인 활성화
 dayjs.extend(utc);
@@ -40,7 +41,10 @@ const KST_TIMEZONE = 'Asia/Seoul';
 @ApiTags('Budget')
 @Controller('budget')
 export class BudgetController {
-  constructor(private readonly transactionService: TransactionService) {}
+  constructor(
+    private readonly transactionService: TransactionService,
+    private readonly categoryService: CategoryService
+  ) {}
 
   @ApiOperation({ summary: '연월별 가계부 데이터 조회' })
   @ApiOkResponse({
@@ -489,228 +493,7 @@ export class BudgetController {
     };
   }
 
-  @ApiOperation({ summary: '카테고리별 지출 순위 조회' })
-  @ApiOkResponse({
-    type: ResponseDto,
-    description: '카테고리별 지출 순위 조회 성공'
-  })
-  @ApiQuery({
-    name: 'workspace_id',
-    description: '워크스페이스 ID'
-  })
-  @ApiQuery({
-    name: 'year',
-    description: '연도',
-    type: 'string'
-  })
-  @ApiQuery({
-    name: 'month',
-    description: '월 (생략 시 연간 카테고리 통계)',
-    type: 'string',
-    required: false
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Get('categories')
-  async getCategoryRanking(
-    @Req() req: any,
-    @Query('workspace_id') workspace_id: string,
-    @Query('year') year: string,
-    @Query('month') month?: string
-  ) {
-    // 필수 파라미터 검증
-    if (!workspace_id) {
-      throw new BadRequestException('workspace_id parameter is required');
-    }
-
-    // year가 없으면 현재 연도를 기본값으로 사용 (한국 시간 기준)
-    const currentYear = dayjs().tz(KST_TIMEZONE).year().toString();
-    const yearToUse = year || currentYear;
-
-    // 연도 유효성 검증
-    const yearNum = parseInt(yearToUse, 10);
-    if (isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
-      throw new BadRequestException(`Invalid year parameter: ${yearToUse}`);
-    }
-
-    // 월이 없으면 연간 카테고리 통계 반환
-    if (!month) {
-      return this.getYearlyCategoryStats(workspace_id, yearNum);
-    }
-
-    // 월 유효성 검증
-    const monthNum = parseInt(month, 10);
-    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
-      throw new BadRequestException('Invalid month parameter');
-    }
-
-    const stats = await this.transactionService.getMonthlyStats(
-      workspace_id,
-      yearNum,
-      monthNum
-    );
-
-    // 지출 카테고리만 필터링하고 금액 순으로 정렬
-    const expenseCategories = stats.category_stats
-      .sort((a, b) => b.amount - a.amount)
-      .map((category, index) => ({
-        rank: index + 1,
-        category: category.category,
-        amount: category.amount,
-        count: category.count,
-        percentage:
-          stats.total_expense > 0
-            ? (category.amount / stats.total_expense) * 100
-            : 0
-      }));
-
-    return {
-      year: yearNum,
-      month: monthNum,
-      workspace_id,
-      total_expense: stats.total_expense,
-      categories: expenseCategories
-    };
-  }
-
-  // 연간 카테고리 통계를 위한 별도 메서드
-  private async getYearlyCategoryStats(workspace_id: string, year: number) {
-    const monthlyStats = [];
-    const categoryMap = new Map<
-      string,
-      { amount: number; count: number; months: number[] }
-    >();
-
-    // 12개월 데이터를 모두 가져오기
-    for (let month = 1; month <= 12; month++) {
-      const stats = await this.transactionService.getMonthlyStats(
-        workspace_id,
-        year,
-        month
-      );
-      monthlyStats.push(stats);
-
-      // 카테고리별 집계
-      for (const category of stats.category_stats) {
-        const existing = categoryMap.get(category.category) || {
-          amount: 0,
-          count: 0,
-          months: []
-        };
-        categoryMap.set(category.category, {
-          amount: existing.amount + category.amount,
-          count: existing.count + category.count,
-          months: existing.months.includes(month)
-            ? existing.months
-            : [...existing.months, month]
-        });
-      }
-    }
-
-    // 연간 총 지출 계산
-    const totalYearlyExpense = monthlyStats.reduce(
-      (sum, stats) => sum + stats.total_expense,
-      0
-    );
-
-    // 카테고리별 연간 통계 생성
-    const yearlyCategories = Array.from(categoryMap.entries())
-      .sort((a, b) => b[1].amount - a[1].amount)
-      .map(([category, stats], index) => ({
-        rank: index + 1,
-        category,
-        amount: stats.amount,
-        count: stats.count,
-        percentage:
-          totalYearlyExpense > 0
-            ? (stats.amount / totalYearlyExpense) * 100
-            : 0,
-        active_months: stats.months.length,
-        avg_monthly_amount: stats.amount / 12
-      }));
-
-    return {
-      type: 'yearly_categories',
-      year,
-      workspace_id,
-      total_expense: totalYearlyExpense,
-      categories: yearlyCategories,
-      summary: {
-        total_categories: yearlyCategories.length,
-        avg_category_amount:
-          yearlyCategories.length > 0
-            ? totalYearlyExpense / yearlyCategories.length
-            : 0,
-        top_category: yearlyCategories[0] || null
-      }
-    };
-  }
-
   // ==================== 카테고리 관련 엔드포인트 ====================
-
-  @ApiOperation({ summary: '기본 카테고리 목록 조회' })
-  @ApiOkResponse({
-    type: ResponseDto,
-    description: '기본 카테고리 목록 조회 성공'
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Get('categories/defaults')
-  async getDefaultCategories() {
-    const defaultCategories = {
-      income: [
-        { id: 'salary', name: '급여', icon: '💰', color: '#4CAF50' },
-        { id: 'bonus', name: '보너스', icon: '🎁', color: '#8BC34A' },
-        { id: 'side_job', name: '부업', icon: '💼', color: '#CDDC39' },
-        { id: 'investment', name: '투자수익', icon: '📈', color: '#009688' },
-        { id: 'allowance', name: '용돈', icon: '💝', color: '#FF9800' },
-        { id: 'refund', name: '환불', icon: '💳', color: '#607D8B' },
-        { id: 'gift', name: '선물', icon: '🎀', color: '#E91E63' },
-        { id: 'other_income', name: '기타수입', icon: '➕', color: '#9C27B0' }
-      ],
-      expense: [
-        // 필수 생활비
-        { id: 'food', name: '식비', icon: '🍽️', color: '#FF5722' },
-        { id: 'housing', name: '주거비', icon: '🏠', color: '#795548' },
-        { id: 'transportation', name: '교통비', icon: '🚗', color: '#3F51B5' },
-        { id: 'utilities', name: '공과금', icon: '💡', color: '#FFC107' },
-        { id: 'communication', name: '통신비', icon: '📱', color: '#00BCD4' },
-
-        // 개인 관리
-        { id: 'healthcare', name: '의료비', icon: '🏥', color: '#F44336' },
-        { id: 'beauty', name: '미용', icon: '💄', color: '#E91E63' },
-        { id: 'clothing', name: '의류', icon: '👕', color: '#9C27B0' },
-
-        // 생활
-        { id: 'shopping', name: '쇼핑', icon: '🛍️', color: '#FF9800' },
-        { id: 'culture', name: '문화생활', icon: '🎭', color: '#673AB7' },
-        { id: 'education', name: '교육비', icon: '📚', color: '#2196F3' },
-        { id: 'sports', name: '운동', icon: '⚽', color: '#4CAF50' },
-
-        // 기타
-        { id: 'insurance', name: '보험료', icon: '🛡️', color: '#607D8B' },
-        { id: 'savings', name: '적금/저축', icon: '🏦', color: '#009688' },
-        {
-          id: 'gift_expense',
-          name: '선물/경조사',
-          icon: '💐',
-          color: '#CDDC39'
-        },
-        { id: 'pet', name: '반려동물', icon: '🐕', color: '#8BC34A' },
-        { id: 'other_expense', name: '기타지출', icon: '➖', color: '#9E9E9E' }
-      ]
-    };
-
-    return {
-      categories: defaultCategories,
-      summary: {
-        total_income_categories: defaultCategories.income.length,
-        total_expense_categories: defaultCategories.expense.length,
-        total_categories:
-          defaultCategories.income.length + defaultCategories.expense.length
-      }
-    };
-  }
 
   @ApiOperation({ summary: '워크스페이스에서 사용된 카테고리 목록 조회' })
   @ApiOkResponse({
@@ -735,16 +518,11 @@ export class BudgetController {
     @Query('workspace_id') workspace_id: string,
     @Query('type') type?: string
   ) {
-    const requestId = Math.random().toString(36).substring(7);
-
     if (!workspace_id) {
       throw new BadRequestException('workspace_id parameter is required');
     }
 
-    // 해당 워크스페이스의 모든 거래 조회
     const transactions = await this.transactionService.findAll(workspace_id);
-
-    // 카테고리별 통계 생성
     const categoryStats = new Map<
       string,
       {
@@ -757,14 +535,11 @@ export class BudgetController {
     >();
 
     transactions.forEach((transaction) => {
-      // type 필터링
       if (type && type !== 'all' && transaction.type !== type) {
         return;
       }
-
       const key = `${transaction.type}_${transaction.category}`;
       const existing = categoryStats.get(key);
-
       if (existing) {
         existing.count++;
         existing.total_amount += transaction.amount;
@@ -782,12 +557,10 @@ export class BudgetController {
       }
     });
 
-    // 카테고리 배열로 변환 및 정렬
     const usedCategories = Array.from(categoryStats.values()).sort(
       (a, b) => b.count - a.count
-    ); // 사용 빈도순으로 정렬
+    );
 
-    // 타입별로 분리
     const incomeCategories = usedCategories
       .filter((cat) => cat.type === 'income')
       .map((cat) => ({
@@ -795,7 +568,7 @@ export class BudgetController {
         count: cat.count,
         total_amount: cat.total_amount,
         last_used: cat.last_used,
-        last_used_kst: dayjs(cat.last_used).tz(KST_TIMEZONE).format()
+        last_used_kst: dayjs(cat.last_used).tz('Asia/Seoul').format()
       }));
 
     const expenseCategories = usedCategories
@@ -805,7 +578,7 @@ export class BudgetController {
         count: cat.count,
         total_amount: cat.total_amount,
         last_used: cat.last_used,
-        last_used_kst: dayjs(cat.last_used).tz(KST_TIMEZONE).format()
+        last_used_kst: dayjs(cat.last_used).tz('Asia/Seoul').format()
       }));
 
     return {
@@ -824,7 +597,9 @@ export class BudgetController {
     };
   }
 
-  @ApiOperation({ summary: '추천 카테고리 조회 (기본 + 사용된 카테고리 통합)' })
+  @ApiOperation({
+    summary: '추천 카테고리 조회 (사용자 생성 + 사용된 카테고리)'
+  })
   @ApiOkResponse({
     type: ResponseDto,
     description: '추천 카테고리 조회 성공'
@@ -858,28 +633,28 @@ export class BudgetController {
       );
     }
 
-    // 기본 카테고리 가져오기
-    const defaultCategoriesResponse = await this.getDefaultCategories();
-    const defaultCategories = defaultCategoriesResponse.categories[type];
+    // 사용자가 생성한 카테고리 가져오기
+    const userCategories = await this.categoryService.getCategories(
+      workspace_id,
+      type
+    );
 
-    // 사용된 카테고리 가져오기
+    // 실제 거래에서 사용된 카테고리 가져오기
     const usedCategoriesResponse = await this.getUsedCategories(
       req,
       workspace_id,
       type
     );
     const usedCategories = usedCategoriesResponse.used_categories[type];
-
-    // 사용된 카테고리 이름 목록
     const usedCategoryNames = new Set(usedCategories.map((cat) => cat.name));
 
-    // 추천 카테고리 생성 (사용된 카테고리를 우선순위로)
+    // 추천 카테고리 생성
     const suggestions = [
-      // 1. 사용된 카테고리 (사용 빈도순)
+      // 1. 사용된 카테고리 (사용 빈도순) - 실제 거래 데이터 포함
       ...usedCategories.map((cat) => ({
         id: cat.name.toLowerCase().replace(/\s+/g, '_'),
         name: cat.name,
-        icon: '📊', // 사용된 카테고리는 통계 아이콘
+        icon: '📊',
         color: '#2196F3',
         is_used: true,
         usage_count: cat.count,
@@ -887,11 +662,14 @@ export class BudgetController {
         last_used: cat.last_used_kst
       })),
 
-      // 2. 사용되지 않은 기본 카테고리
-      ...defaultCategories
+      // 2. 사용되지 않은 사용자 생성 카테고리
+      ...userCategories
         .filter((cat) => !usedCategoryNames.has(cat.name))
         .map((cat) => ({
-          ...cat,
+          id: cat._id.toString(),
+          name: cat.name,
+          icon: cat.icon || '📝',
+          color: cat.color || '#9E9E9E',
           is_used: false,
           usage_count: 0,
           total_amount: 0
@@ -905,7 +683,12 @@ export class BudgetController {
       summary: {
         total_suggestions: suggestions.length,
         used_categories: usedCategories.length,
-        default_categories: defaultCategories.length - usedCategories.length
+        user_created_categories: userCategories.length,
+        unused_user_categories:
+          userCategories.length -
+          usedCategories.filter((cat) =>
+            userCategories.some((userCat) => userCat.name === cat.name)
+          ).length
       }
     };
   }
@@ -978,7 +761,6 @@ export class BudgetController {
   @Serialize(TransactionDto)
   @Get(':id')
   async getTransactionDetail(@Param('id') id: string) {
-    console.log('id', id);
     return this.transactionService.findById(id);
   }
 

@@ -149,12 +149,45 @@ build_and_push_image() {
 # Docker Swarm 스택 배포 함수
 deploy_stack() {
     local stack_name="$1"
-    echo "🚀 Docker Swarm 스택을 배포합니다..."
-    # 서비스 업데이트 전 이미지 강제 갱신
-    docker service update --force --image-pull-policy always $(docker stack services -q "$stack_name") 2>/dev/null || true
-    # 스택 배포
-    docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
-    echo "✅ Docker Swarm 스택 배포가 완료되었습니다."
+    local service_name="$2"  # 새로운 매개변수 추가
+    
+    if [ -n "$service_name" ]; then
+        # 개별 서비스만 업데이트
+        echo "🚀 개별 서비스를 업데이트합니다: $service_name"
+        
+        case "$service_name" in
+            "lovechedule-server")
+                if docker service ls | grep -q "${stack_name}_lovechedule-server"; then
+                    echo "🔄 lovechedule-server 서비스를 업데이트합니다..."
+                    docker service update --force --image "soomumu/project:lovechedule-latest" "${stack_name}_lovechedule-server"
+                else
+                    echo "ℹ️ lovechedule-server 서비스가 존재하지 않습니다. 전체 스택을 배포합니다."
+                    docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
+                fi
+                ;;
+            "notification-server")
+                if docker service ls | grep -q "${stack_name}_notification-server"; then
+                    echo "🔄 notification-server 서비스를 업데이트합니다..."
+                    docker service update --force --image "soomumu/project:notification-latest" "${stack_name}_notification-server"
+                else
+                    echo "ℹ️ notification-server 서비스가 존재하지 않습니다. 전체 스택을 배포합니다."
+                    docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
+                fi
+                ;;
+            *)
+                echo "⚠️ 알 수 없는 서비스입니다: $service_name. 전체 스택을 배포합니다."
+                docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
+                ;;
+        esac
+    else
+        # 전체 스택 배포
+        echo "🚀 전체 Docker Swarm 스택을 배포합니다..."
+        # 서비스 업데이트 전 이미지 강제 갱신
+        docker service update --force --image-pull-policy always $(docker stack services -q "$stack_name") 2>/dev/null || true
+        # 스택 배포
+        docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
+    fi
+    echo "✅ Docker Swarm 배포가 완료되었습니다."
 }
 
 # 컨테이너 상태 확인 함수 (Swarm 환경)
@@ -254,29 +287,8 @@ if [ "$DEPLOY" = true ]; then
         docker pull "soomumu/project:notification-latest" --quiet || echo "⚠️ 알림 서버 이미지 갱신 실패, 계속 진행합니다."
     fi
     
-    
-    # 서비스 이미지 강제 업데이트 명령 추가
-    if [ "$SERVICE" == "notification-server" ]; then
-        echo "🔄 notification-server 서비스를 강제 업데이트합니다..."
-        # 서비스가 이미 존재하는지 확인
-        if docker service ls | grep -q "${STACK_NAME}_notification-server"; then
-            docker service update --force --image "soomumu/project:notification-latest" "${STACK_NAME}_notification-server" || echo "⚠️ 알림 서버 서비스 업데이트 실패, 계속 진행합니다."
-        else
-            echo "ℹ️ notification-server 서비스가 존재하지 않습니다. 새로 배포합니다."
-            docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
-        fi
-    elif [ "$SERVICE" == "lovechedule-server" ]; then
-        echo "🔄 lovechedule-server 서비스를 강제 업데이트합니다..."
-        # 서비스가 이미 존재하는지 확인
-        if docker service ls | grep -q "${STACK_NAME}_lovechedule-server"; then
-            docker service update --force --image "soomumu/project:lovechedule-latest" "${STACK_NAME}_lovechedule-server" || echo "⚠️ 메인 서버 서비스 업데이트 실패, 계속 진행합니다."
-        else
-            echo "ℹ️ lovechedule-server 서비스가 존재하지 않습니다. 새로 배포합니다."
-            docker stack deploy --prune --with-registry-auth -c "${SCRIPT_DIR}/docker-compose/base.yaml" $(printf -- '-c %s ' "${SCRIPT_DIR}/${COMPOSE_FILE[@]}") "$stack_name"
-        fi
-    fi
-    
-    deploy_stack "$STACK_NAME"
+    # 개별 서비스 업데이트 로직 제거 (deploy_stack 함수에서 처리)
+    deploy_stack "$STACK_NAME" "$SERVICE"
     check_services "$STACK_NAME"
 else
     echo "✅ 배포 없이 Swarm 상태를 확인합니다."

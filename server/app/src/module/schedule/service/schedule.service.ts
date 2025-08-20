@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   Inject,
   Injectable,
@@ -78,6 +79,59 @@ export class ScheduleService implements OnModuleInit {
 
   private readonly logger = new Logger(ScheduleService.name);
 
+  /**
+   * ObjectId 유효성 검사 헬퍼 메서드 (진단 정보 포함)
+   * @param id 검사할 ID 문자열
+   * @param fieldName 필드명 (에러 메시지용)
+   * @param methodName 호출한 메서드명 (디버깅용)
+   * @throws BadRequestException 유효하지 않은 ObjectId인 경우
+   */
+  private validateObjectId(
+    id: string,
+    fieldName: string = 'ID',
+    methodName?: string
+  ): void {
+    // 디버깅 정보 로깅
+    const debugInfo = {
+      method: methodName || 'unknown',
+      field: fieldName,
+      receivedValue: id,
+      valueType: typeof id,
+      valueLength: id?.length || 0,
+      timestamp: new Date().toISOString()
+    };
+
+    if (!id) {
+      this.logger.error(`❌ [${fieldName} 검증 실패] 빈 값 받음`, debugInfo);
+      throw new BadRequestException(`${fieldName}가 필요합니다.`);
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      this.logger.error(`❌ [${fieldName} 검증 실패] 잘못된 형식`, debugInfo);
+      throw new BadRequestException(`유효하지 않은 ${fieldName} 형식입니다.`);
+    }
+
+    // 성공적인 검증도 로깅 (디버깅 모드에서만)
+    if (process.env.NODE_ENV === 'development') {
+      this.logger.debug(`✅ [${fieldName} 검증 성공]`, debugInfo);
+    }
+  }
+
+  /**
+   * 여러 ObjectId들을 한번에 검사하는 헬퍼 메서드
+   * @param ids ID와 필드명의 배열
+   * @param methodName 호출한 메서드명 (디버깅용)
+   * @throws BadRequestException 유효하지 않은 ObjectId가 있는 경우
+   */
+  private validateMultipleObjectIds(
+    ids: Array<{ id: string; fieldName: string }>,
+    methodName?: string
+  ): void {
+    for (const { id, fieldName } of ids) {
+      this.validateObjectId(id, fieldName, methodName);
+    }
+  }
+
   onModuleInit() {
     // gRPC 클라이언트 서비스 초기화
     try {
@@ -97,6 +151,9 @@ export class ScheduleService implements OnModuleInit {
     day: string
   ): Promise<Schedule[]> {
     try {
+      // ObjectId 유효성 검사
+      this.validateObjectId(_id, 'Workspace ID', 'find');
+
       const schedules = await this.scheduleRepository.findByWorkspaceId(
         new Types.ObjectId(_id),
         year,
@@ -205,30 +262,53 @@ export class ScheduleService implements OnModuleInit {
       return combinedCalendar;
     } catch (e) {
       this.logger.error(e);
+      // BadRequestException을 그대로 전파
+      if (e instanceof BadRequestException) {
+        throw e;
+      }
       throw new HttpException(e, e.status);
     }
   }
 
   async findById(_id: string): Promise<Schedule> {
     try {
+      // ObjectId 유효성 검사
+      this.validateObjectId(_id, 'Schedule ID', 'findById');
+
       const schedule = await this.scheduleRepository.findById(
         new Types.ObjectId(_id)
       );
       return schedule;
     } catch (e) {
       this.logger.error(e);
+      // BadRequestException을 그대로 전파
+      if (e instanceof BadRequestException) {
+        throw e;
+      }
       throw new HttpException(e, e.status);
     }
   }
 
   async count(_id: string): Promise<any> {
     try {
+      // ObjectId 유효성 검사
+      this.validateObjectId(_id, 'Workspace ID', 'count');
+
       const workspace: any = await this.workspaceRepository.findOneById(
         new Types.ObjectId(_id)
       );
       const master_id: string = String(workspace.master._id);
       const guest_user: any = workspace.users.find(
         (user: any) => user._id.toString() !== master_id.toString()
+      );
+
+      // 추가적인 ID 유효성 검사
+      this.validateMultipleObjectIds(
+        [
+          { id: master_id, fieldName: 'Master ID' },
+          { id: guest_user._id as string, fieldName: 'Guest User ID' }
+        ],
+        'count'
       );
 
       const settingResult = {
@@ -289,6 +369,10 @@ export class ScheduleService implements OnModuleInit {
       return settingResult;
     } catch (e) {
       this.logger.error(e);
+      // BadRequestException을 그대로 전파
+      if (e instanceof BadRequestException) {
+        throw e;
+      }
       throw new HttpException(e.message, e.status || 500);
     }
   }
@@ -299,6 +383,10 @@ export class ScheduleService implements OnModuleInit {
     body: CreateScheduleRequestDto
   ): Promise<Schedule> {
     try {
+      // ObjectId 유효성 검사
+      this.validateObjectId(_id, 'Workspace ID', 'insert');
+      this.validateObjectId(user._id, 'User ID', 'insert');
+
       const schedule = await this.scheduleRepository.insert(
         new Types.ObjectId(_id),
         body
@@ -425,6 +513,10 @@ export class ScheduleService implements OnModuleInit {
       return schedule;
     } catch (e) {
       this.logger.error(e);
+      // BadRequestException을 그대로 전파
+      if (e instanceof BadRequestException) {
+        throw e;
+      }
       throw new HttpException(
         e.message || 'Internal server error',
         e.status || 500
@@ -467,6 +559,9 @@ export class ScheduleService implements OnModuleInit {
 
   async update(_id: string, body: UpdateScheduleRequestDto): Promise<Schedule> {
     try {
+      // ObjectId 유효성 검사
+      this.validateObjectId(_id, 'Schedule ID', 'update');
+
       const schedule = await this.scheduleRepository.update(
         new Types.ObjectId(_id),
         body
@@ -474,18 +569,29 @@ export class ScheduleService implements OnModuleInit {
       return schedule;
     } catch (e) {
       this.logger.error(e);
+      // BadRequestException을 그대로 전파
+      if (e instanceof BadRequestException) {
+        throw e;
+      }
       throw new HttpException(e, e.status);
     }
   }
 
   async delete(_id: string): Promise<Schedule> {
     try {
+      // ObjectId 유효성 검사
+      this.validateObjectId(_id, 'Schedule ID', 'delete');
+
       const schedule = await this.scheduleRepository.delete(
         new Types.ObjectId(_id)
       );
       return schedule;
     } catch (e) {
       this.logger.error(e);
+      // BadRequestException을 그대로 전파
+      if (e instanceof BadRequestException) {
+        throw e;
+      }
       throw new HttpException(e, e.status);
     }
   }

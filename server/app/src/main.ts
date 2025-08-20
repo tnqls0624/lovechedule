@@ -24,7 +24,7 @@ async function bootstrap() {
     credentials: true
   });
 
-  await app.listen(3000);
+  await app.listen(3001);
   logger.log(`Lovechedule Server is Running On: ${await app.getUrl()}`);
   if (module.hot) {
     module.hot.accept();

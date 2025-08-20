@@ -91,11 +91,6 @@ export class ScheduleController {
     name: 'id',
     example: 'dsanjkn213nj21k'
   })
-  @Get('/:id')
-  findById(@Param('id') _id: string) {
-    return this.scheduleService.findById(_id);
-  }
-
   @ApiOkResponse({
     type: ResponseDto,
     description: '성공'
@@ -104,9 +99,14 @@ export class ScheduleController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   // @Serialize(ScheduleDto)
-  @Get('/count/:id')
+  @Get('/counts/:id')
   count(@Param('id') _id: string) {
     return this.scheduleService.count(_id);
+  }
+
+  @Get('/:id')
+  findById(@Param('id') _id: string) {
+    return this.scheduleService.findById(_id);
   }
 
   @ApiOperation({ summary: 'Create Schedule' })
